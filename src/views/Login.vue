@@ -3,8 +3,8 @@
     <div class="auth-card">
       <div class="auth-logo">
         <div class="pokeball-icon" style="width:48px;height:48px;margin:0 auto 1rem;"></div>
-        <h1>Pokédex</h1>
-        <p>Inicia sesión para continuar</p>
+        <h1>PokéRosa 🌸</h1>
+        <p>¡Bienvenida! Inicia sesión para continuar ✨</p>
       </div>
 
       <div v-if="error" class="auth-error">{{ error }}</div>
@@ -12,7 +12,7 @@
       <form @submit.prevent="login">
         <div class="form-group">
           <label class="form-label">Correo Electrónico</label>
-          <input v-model="email" type="email" class="form-input" placeholder="entrenador@pokemon.com" required />
+          <input v-model="email" type="email" class="form-input" placeholder="serena@pokemon.com" required />
         </div>
         
         <div class="form-group">
@@ -21,7 +21,7 @@
         </div>
         
         <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;" :disabled="loading">
-          {{ loading ? 'Ingresando...' : 'Entrar al Mundo Pokémon' }}
+          {{ loading ? 'Ingresando...' : 'Explorar el Mundo PokéRosa 💖' }}
         </button>
       </form>
 

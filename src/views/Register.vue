@@ -3,21 +3,21 @@
     <div class="auth-card">
       <div class="auth-logo">
         <div class="pokeball-icon" style="width:48px;height:48px;margin:0 auto 1rem;"></div>
-        <h1>Registro Especial</h1>
-        <p>Obtén tu licencia de Entrenador Pokémon</p>
+        <h1>Registro PokéRosa 🎀</h1>
+        <p>Conviértete en una Entrenadora Pokémon</p>
       </div>
 
       <div v-if="error" class="auth-error">{{ error }}</div>
 
       <form @submit.prevent="register">
         <div class="form-group">
-          <label class="form-label">Nombre de Entrenador</label>
-          <input v-model="username" type="text" class="form-input" placeholder="Ash Ketchum" required />
+          <label class="form-label">Nombre de Entrenadora</label>
+          <input v-model="username" type="text" class="form-input" placeholder="Serena" required />
         </div>
 
         <div class="form-group">
           <label class="form-label">Correo Electrónico</label>
-          <input v-model="email" type="email" class="form-input" placeholder="ash@pueblopaleta.com" required />
+          <input v-model="email" type="email" class="form-input" placeholder="serena@pokemon.com" required />
         </div>
         
         <div class="form-group">
@@ -26,7 +26,7 @@
         </div>
         
         <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;" :disabled="loading">
-          {{ loading ? 'Registrando...' : 'Obtener Licencia' }}
+          {{ loading ? 'Registrando...' : 'Obtener Licencia Rosa ✨' }}
         </button>
       </form>
 

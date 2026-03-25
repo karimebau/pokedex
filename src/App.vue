@@ -4,20 +4,20 @@
       <div class="navbar-inner">
         <router-link to="/pokemon" class="navbar-brand">
           <div class="pokeball-icon"></div>
-          Pokédex
+          PokéRosa 🌸
         </router-link>
         
         <div class="navbar-links">
-          <router-link to="/pokemon">Pokémon</router-link>
-          <router-link to="/favorites">Favoritos</router-link>
-          <router-link to="/teams">Equipos</router-link>
-          <router-link to="/friends">Amigos</router-link>
-          <router-link to="/battles">Batallas</router-link>
+          <router-link to="/pokemon">Explorar 🎀</router-link>
+          <router-link to="/favorites">Favoritos 💖</router-link>
+          <router-link to="/teams">Mis Equipos ✨</router-link>
+          <router-link to="/friends">Amigos 💌</router-link>
+          <router-link to="/battles">Batallas ⚔️</router-link>
         </div>
         
         <div class="navbar-user">
-          <span class="username">{{ username }}</span>
-          <button @click="logout" class="btn-logout">Salir</button>
+          <span class="username">Hola, {{ username }}</span>
+          <button @click="logout" class="btn-logout">Cerrar Sesión</button>
         </div>
       </div>
     </nav>
