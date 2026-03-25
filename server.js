@@ -16,6 +16,6 @@ app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Production server listening on http://0.0.0.0:${PORT}`);
+app.listen(PORT, '::', () => {
+  console.log(`🚀 Production server listening on IPv6/IPv4 port ${PORT}`);
 });
