@@ -237,6 +237,7 @@ export default {
           this.favorites.add(id);
         }
       } catch (e) {
+        alert("Error de API: " + (e.response?.data?.error || e.message));
         console.error('Error toggling favorite', e);
       }
     }
