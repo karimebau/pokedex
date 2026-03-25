@@ -6,38 +6,38 @@
 
 :root {
   /* ── Base colors ─────────────────────────────────────────── */
-  --bg-primary: #0f0f1a;
-  --bg-secondary: #1a1a2e;
-  --bg-card: #16213e;
-  --bg-glass: rgba(22, 33, 62, 0.7);
-  --bg-input: #1a1a2e;
-  --surface: #202040;
-  --surface-hover: #2a2a4a;
+  --bg-primary: #1a0f16;
+  --bg-secondary: #2e1a26;
+  --bg-card: #3e162a;
+  --bg-glass: rgba(62, 22, 42, 0.7);
+  --bg-input: #2e1a26;
+  --surface: #402030;
+  --surface-hover: #4a2a3a;
 
   /* ── Text ────────────────────────────────────────────────── */
-  --text-primary: #e8e8f0;
-  --text-secondary: #a0a0c0;
-  --text-muted: #6060a0;
+  --text-primary: #f8e8f0;
+  --text-secondary: #c0a0b0;
+  --text-muted: #a06080;
 
   /* ── Accent ──────────────────────────────────────────────── */
-  --accent: #e63946;
-  --accent-glow: rgba(230, 57, 70, 0.3);
-  --accent-secondary: #ff6b6b;
-  --pokeball-red: #e63946;
-  --pokeball-dark: #cc2936;
+  --accent: #ff477e;
+  --accent-glow: rgba(255, 71, 126, 0.3);
+  --accent-secondary: #ff7096;
+  --pokeball-red: #ff477e;
+  --pokeball-dark: #e03565;
 
   /* ── Gradients ───────────────────────────────────────────── */
-  --gradient-hero: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
-  --gradient-card: linear-gradient(145deg, #16213e, #1a1a2e);
-  --gradient-accent: linear-gradient(135deg, #e63946, #ff6b6b);
-  --gradient-nav: linear-gradient(180deg, rgba(15,15,26,0.95), rgba(15,15,26,0.8));
+  --gradient-hero: linear-gradient(135deg, #1a0f16 0%, #2e1a26 50%, #3e162a 100%);
+  --gradient-card: linear-gradient(145deg, #3e162a, #2e1a26);
+  --gradient-accent: linear-gradient(135deg, #ff477e, #ff7096);
+  --gradient-nav: linear-gradient(180deg, rgba(26,15,22,0.95), rgba(26,15,22,0.8));
 
   /* ── Borders & Shadows ───────────────────────────────────── */
-  --border-color: rgba(255, 255, 255, 0.06);
-  --border-glow: rgba(230, 57, 70, 0.2);
+  --border-color: rgba(255, 200, 220, 0.08);
+  --border-glow: rgba(255, 71, 126, 0.2);
   --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4);
   --shadow-hover: 0 12px 48px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px rgba(230, 57, 70, 0.15);
+  --shadow-glow: 0 0 20px rgba(255, 71, 126, 0.15);
 
   /* ── Radii ───────────────────────────────────────────────── */
   --radius-sm: 8px;
