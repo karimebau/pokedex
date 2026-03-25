@@ -1,11 +1,55 @@
-<script setup></script>
-
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <div id="app">
+    <nav v-if="isAuthenticated" class="navbar">
+      <div class="navbar-inner">
+        <router-link to="/pokemon" class="navbar-brand">
+          <div class="pokeball-icon"></div>
+          Pokédex
+        </router-link>
+        
+        <div class="navbar-links">
+          <router-link to="/pokemon">Pokémon</router-link>
+          <router-link to="/favorites">Favoritos</router-link>
+          <router-link to="/teams">Equipos</router-link>
+          <router-link to="/friends">Amigos</router-link>
+          <router-link to="/battles">Batallas</router-link>
+        </div>
+        
+        <div class="navbar-user">
+          <span class="username">{{ username }}</span>
+          <button @click="logout" class="btn-logout">Salir</button>
+        </div>
+      </div>
+    </nav>
+    
+    <main class="main-content">
+      <router-view />
+    </main>
+  </div>
 </template>
 
-<style scoped></style>
+<script>
+export default {
+  name: 'App',
+  computed: {
+    isAuthenticated() {
+      return !!localStorage.getItem('token');
+    },
+    username() {
+      try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        return user?.username || '';
+      } catch {
+        return '';
+      }
+    }
+  },
+  methods: {
+    logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      this.$router.push('/');
+    }
+  }
+}
+</script>

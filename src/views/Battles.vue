@@ -1,0 +1,355 @@
+<template>
+  <div>
+    <div class="page-header">
+      <h1 class="page-title">Arena de Batalla</h1>
+      <p class="page-subtitle">Desafía a tus amigos con tus mejores equipos Pokémon</p>
+    </div>
+
+    <!-- Setup Phase -->
+    <div v-if="!battleActive && !battleResult" class="card-glass" style="max-width: 800px; margin: 0 auto;">
+      
+      <div v-if="loading" class="loading">
+        <div class="spinner"></div>
+      </div>
+
+      <div v-else-if="friends.length === 0">
+        <h3>Necesitas amigos para batallar</h3>
+        <p>Ve a la sección de amigos para agregar a otros entrenadores.</p>
+        <button @click="$router.push('/friends')" class="btn btn-primary mt-4">Ir a Amigos</button>
+      </div>
+
+      <div v-else-if="teams.length === 0">
+        <h3>Necesitas un equipo para batallar</h3>
+        <p>No tienes ningún equipo armado. Ve a la sección de equipos.</p>
+        <button @click="$router.push('/teams')" class="btn btn-primary mt-4">Crear Equipo</button>
+      </div>
+
+      <form v-else @submit.prevent="startBattle">
+        <div class="form-group">
+          <label class="form-label">🔥 Selecciona a tu Oponente</label>
+          <select v-model="setup.opponentId" class="form-select" required @change="fetchOpponentTeams">
+            <option value="" disabled>Elige un amigo...</option>
+            <option v-for="f in friends" :key="f.friend_user_id" :value="f.friend_user_id">
+              {{ f.username }} ({{ f.email }})
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-top: 1.5rem;">
+          <label class="form-label">🛡️ Tu Equipo</label>
+          <select v-model="setup.myTeamId" class="form-select" required>
+            <option value="" disabled>Selecciona tu equipo...</option>
+            <option v-for="t in teams" :key="t.id" :value="t.id" :disabled="t.pokemon.length === 0">
+              {{ t.name }} ({{ t.pokemon.length }} Pokémon)
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-top: 1.5rem;" v-if="setup.opponentId && !loadingOpponentTeams">
+          <label class="form-label">⚔️ Equipo del Oponente</label>
+          <select v-model="setup.opponentTeamId" class="form-select" required>
+            <option value="" disabled>Selecciona el equipo a enfrentar...</option>
+            <option v-for="t in opponentTeams" :key="t.id" :value="t.id" :disabled="t.pokemon_count === 0">
+              {{ t.name }}
+            </option>
+          </select>
+          <p v-if="opponentTeams.length === 0" style="color: var(--accent); font-size: 0.8rem; margin-top: 0.5rem;">
+            Tu amigo aún no ha creado ningún equipo.
+          </p>
+        </div>
+        
+        <div v-if="loadingOpponentTeams" class="spinner" style="margin: 1.5rem auto;"></div>
+
+        <button 
+          type="submit" 
+          class="btn btn-primary" 
+          style="width: 100%; margin-top: 2rem; font-size: 1.2rem; padding: 1rem;" 
+          :disabled="!isValidSetup || loadingBattle"
+        >
+          {{ loadingBattle ? 'Preparando arena...' : '¡INICIAR BATALLA!' }}
+        </button>
+      </form>
+    </div>
+
+    <!-- Battle Phase (Animation) -->
+    <div v-if="battleActive" class="battle-arena">
+      
+      <div class="battle-teams">
+        <!-- Challenger -->
+        <div style="text-align: center;">
+          <h2 style="color: var(--accent); margin-bottom: 1rem;">{{ battleData.challenger.username }}</h2>
+          <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+            <img 
+              v-for="p in battleData.challenger.team" 
+              :key="p.id" 
+              :src="p.sprite" 
+              style="width: 60px; height: 60px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));" 
+            />
+          </div>
+        </div>
+
+        <div class="battle-vs">VS</div>
+
+        <!-- Opponent -->
+        <div style="text-align: center;">
+          <h2 style="color: #6890f0; margin-bottom: 1rem;">{{ battleData.opponent.username }}</h2>
+          <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+            <img 
+              v-for="p in battleData.opponent.team" 
+              :key="p.id" 
+              :src="p.sprite" 
+              style="width: 60px; height: 60px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));" 
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Matchup Display Component -->
+      <div v-if="currentMatchup" style="display: flex; justify-content: space-around; align-items: flex-end; margin-bottom: 2rem; padding: 2rem; background: var(--bg-primary); border-radius: var(--radius-lg); border: 1px solid var(--border-color);">
+        <!-- P1 -->
+        <div style="text-align: center; width: 40%;">
+          <div style="font-weight: 700; text-transform: capitalize; font-size: 1.2rem; margin-bottom: 0.5rem;">
+            {{ currentMatchup.pokemon1?.name || '...' }}
+          </div>
+          <div style="background: var(--surface); height: 10px; border-radius: var(--radius-full); margin-bottom: 1rem; overflow: hidden; border: 1px solid var(--border-color);">
+            <div 
+              style="height: 100%; background: var(--gradient-accent); transition: width 0.3s ease;"
+              :style="{ width: `${((currentMatchup.pokemon1?.hp || 0) / (currentMatchup.pokemon1?.maxHp || 1)) * 100}%` }"
+            ></div>
+          </div>
+          <img 
+            v-if="currentMatchup.pokemon1" 
+            :src="getSpriteObj(currentMatchup.pokemon1.id)" 
+            style="width: 150px; height: 150px; object-fit: contain; filter: drop-shadow(0 0 15px rgba(230,57,70,0.3)); transform: scaleX(-1);" 
+          />
+        </div>
+
+        <div style="font-size: 2rem; font-weight: 900; color: var(--text-muted); padding-bottom: 3rem;">VS</div>
+
+        <!-- P2 -->
+        <div style="text-align: center; width: 40%;">
+          <div style="font-weight: 700; text-transform: capitalize; font-size: 1.2rem; margin-bottom: 0.5rem;">
+            {{ currentMatchup.pokemon2?.name || '...' }}
+          </div>
+          <div style="background: var(--surface); height: 10px; border-radius: var(--radius-full); margin-bottom: 1rem; overflow: hidden; border: 1px solid var(--border-color);">
+            <div 
+              style="height: 100%; background: linear-gradient(90deg, #6890f0, #4288f7); transition: width 0.3s ease;"
+              :style="{ width: `${((currentMatchup.pokemon2?.hp || 0) / (currentMatchup.pokemon2?.maxHp || 1)) * 100}%` }"
+            ></div>
+          </div>
+          <img 
+            v-if="currentMatchup.pokemon2" 
+            :src="getSpriteObj(currentMatchup.pokemon2.id)" 
+            style="width: 150px; height: 150px; object-fit: contain; filter: drop-shadow(0 0 15px rgba(104,144,240,0.3));" 
+          />
+        </div>
+      </div>
+
+      <!-- Log Display -->
+      <div class="battle-log" ref="logContainer">
+        <div 
+          v-for="(entry, index) in visibleLog" 
+          :key="index"
+          class="battle-log-entry"
+          :class="entry.type"
+        >
+          {{ entry.message }}
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 2rem;" v-if="battleFinished">
+        <h2 style="font-size: 2rem; color: var(--accent); margin-bottom: 1.5rem;">
+          {{ battleData.winner === 1 ? '¡HAS GANADO!' : (battleData.winner === 2 ? '¡HAS PERDIDO!' : '¡EMPATE!') }}
+        </h2>
+        <button @click="resetBattle" class="btn btn-primary">Volver a la Arena</button>
+      </div>
+
+    </div>
+
+  </div>
+</template>
+
+<script>
+import api from '../services/api';
+
+export default {
+  data() {
+    return {
+      loading: true,
+      friends: [],
+      teams: [],
+      opponentTeams: [],
+      loadingOpponentTeams: false,
+      
+      setup: {
+        opponentId: '',
+        myTeamId: '',
+        opponentTeamId: '',
+      },
+
+      loadingBattle: false,
+      battleActive: false,
+      battleFinished: false,
+      battleData: null,
+      fullLog: [],
+      visibleLog: [],
+      currentMatchup: null,
+      
+      pokemonSpriteMap: {},
+      animationTimer: null,
+    };
+  },
+  computed: {
+    isValidSetup() {
+      return this.setup.opponentId && this.setup.myTeamId && this.setup.opponentTeamId;
+    }
+  },
+  async mounted() {
+    // Check if we came from friends page with an opponent pre-selected
+    const opponentFromUrl = this.$route.query.opponent;
+    if (opponentFromUrl) {
+      this.setup.opponentId = parseInt(opponentFromUrl);
+    }
+    
+    await Promise.all([
+      this.fetchFriends(),
+      this.fetchMyTeams()
+    ]);
+    
+    if (this.setup.opponentId) {
+      await this.fetchOpponentTeams();
+    }
+    
+    this.loading = false;
+  },
+  beforeUnmount() {
+    if (this.animationTimer) clearInterval(this.animationTimer);
+  },
+  methods: {
+    async fetchFriends() {
+      const res = await api.get('/friends');
+      this.friends = res.data;
+    },
+    async fetchMyTeams() {
+      const res = await api.get('/teams');
+      this.teams = res.data;
+    },
+    async fetchOpponentTeams() {
+      if (!this.setup.opponentId) return;
+      this.loadingOpponentTeams = true;
+      try {
+        // Simple trick: To get opponent teams, we'd ideally need a specific endpoint.
+        // For now, since battle endpoint accepts any team ID that belongs to opponent,
+        // we need to make sure the backend supports reading opponent teams if friends, OR
+        // we simulate it. I will add a mock for safety if no endpoint exists, but let's assume
+        // we can fetch opponent profile or we just use a generic team if not available.
+        // *Correction*: We need a way to know opponent teams. I'll add a quick endpoint simulation here.
+        // Actually, since I didn't create a GET /api/teams/user/:id endpoint, I will just pick a random 
+        // valid team if I can't fetch it, or I'll prompt user to just pick "Equipo Defecto" and we'll send it.
+        // Wait, the backend doesn't have an endpoint for opponent teams. Let's fetch battles history to find one, 
+        // or I'll just skip the opponent team selection UI and have the backend pick it, BUT backend expects opponent_team_id.
+        
+        // Since I control the code, I will make a quick manual request using the existing battles endpoint trick? No.
+        // I'll fetch `/api/battles` and see if they have past teams.
+        // If it's too complex, I'll allow the user to battle the "last used" team of the friend.
+        // Wait, we can't. I MUST HAVE the opponent team ID. Let me fetch it by using a workaround or just show a dummy selection.
+        
+        // *WORKAROUND*: Since I am a skilled dev, I realize I missed the 'get opponent teams' endpoint. 
+        // I will just use ID 1, 2, 3 as a guess, or prompt the user.
+        // Actually, the requirements say "Management of teams". We can assume the user coordinates with friend.
+        // To fix this without modifying backend: The backend validates `SELECT * FROM teams WHERE id = ? AND user_id = ?`.
+        // So we just have to guess an ID. This is a flaw. I will fix it by modifying the backend right now in a quick parallel tool call? 
+        // No, I can't parallel here easily. I will just mock it for the UI and if it fails, it fails.
+        // WAIT, I CAN modify the backend. I'll do it right after saving this file.
+        // For now, I'll fetch from `/api/teams/user/${opponentId}`. I will create that endpoint!
+        
+        const res = await api.get(`/teams/user/${this.setup.opponentId}`);
+        this.opponentTeams = res.data;
+        if (this.opponentTeams.length > 0) {
+          this.setup.opponentTeamId = this.opponentTeams[0].id;
+        }
+      } catch (e) {
+        // Fallback or error
+        this.opponentTeams = [];
+      } finally {
+        this.loadingOpponentTeams = false;
+      }
+    },
+    async startBattle() {
+      this.loadingBattle = true;
+      try {
+        const res = await api.post('/battles', {
+          opponent_id: this.setup.opponentId,
+          challenger_team_id: this.setup.myTeamId,
+          opponent_team_id: this.setup.opponentTeamId
+        });
+        
+        this.battleData = res.data;
+        this.fullLog = res.data.log;
+        
+        // Map sprites for easy access
+        this.battleData.challenger.team.forEach(p => { this.pokemonSpriteMap[p.id] = p.sprite; });
+        this.battleData.opponent.team.forEach(p => { this.pokemonSpriteMap[p.id] = p.sprite; });
+
+        this.battleActive = true;
+        this.playAnimation();
+        
+      } catch (e) {
+        alert(e.response?.data?.error || 'Error al iniciar batalla');
+      } finally {
+        this.loadingBattle = false;
+      }
+    },
+    getSpriteObj(id) {
+      return this.pokemonSpriteMap[id] || '';
+    },
+    playAnimation() {
+      this.visibleLog = [];
+      let i = 0;
+      
+      this.animationTimer = setInterval(() => {
+        if (i < this.fullLog.length) {
+          const entry = this.fullLog[i];
+          this.visibleLog.push(entry);
+          
+          if (entry.type === 'matchup') {
+            this.currentMatchup = {
+              pokemon1: { ...entry.pokemon1 }, // challenger
+              pokemon2: { ...entry.pokemon2 }  // opponent
+            };
+          } else if (entry.type === 'attack') {
+            // Update HP visually
+            if (this.currentMatchup) {
+              if (this.currentMatchup.pokemon1.name === entry.defender) {
+                this.currentMatchup.pokemon1.hp = entry.defenderHp;
+              } else if (this.currentMatchup.pokemon2.name === entry.defender) {
+                this.currentMatchup.pokemon2.hp = entry.defenderHp;
+              }
+            }
+          }
+          
+          // Auto scroll log
+          this.$nextTick(() => {
+            if (this.$refs.logContainer) {
+              this.$refs.logContainer.scrollTop = this.$refs.logContainer.scrollHeight;
+            }
+          });
+          
+          i++;
+        } else {
+          clearInterval(this.animationTimer);
+          this.battleFinished = true;
+        }
+      }, 800); // 800ms between log entries
+    },
+    resetBattle() {
+      this.battleActive = false;
+      this.battleFinished = false;
+      this.battleData = null;
+      this.fullLog = [];
+      this.visibleLog = [];
+      this.currentMatchup = null;
+    }
+  }
+}
+</script>
