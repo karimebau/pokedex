@@ -34,7 +34,8 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,json,vue}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
+        navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
@@ -52,11 +53,12 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: /\/api\/.*/i,
+            // Coincidencia más amplia para incluir URLs de Railway
+            urlPattern: ({ url }) => url.pathname.includes('/api/'),
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-data-cache',
-              networkTimeoutSeconds: 3,
+              networkTimeoutSeconds: 5,
               expiration: {
                 maxEntries: 100,
                 maxAgeSeconds: 60 * 60 * 24 // 1 day
