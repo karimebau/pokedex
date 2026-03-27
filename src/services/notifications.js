@@ -21,39 +21,37 @@ export const NotificationService = {
   },
 
   async showLocalNotification(title, options = {}) {
-    console.log('[NotificationService] Intentando mostrar notificación:', title);
-    if (typeof Notification === 'undefined') return;
-
-    if (Notification.permission !== 'granted') {
-      console.warn('[NotificationService] Permiso no concedido. Estado:', Notification.permission);
+    console.log('[NotificationService] Solicitando al navegador mostrar:', title);
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+      console.warn('[NotificationService] Abortado: permiso no concedido o API no disponible.');
       return;
     }
 
+    const defaultOptions = {
+      body: 'Tienes algo nuevo en PokéRosa 🎀',
+      icon: 'https://cdn-icons-png.flaticon.com/128/188/188940.png', // Icono externo para probar si es un tema de ruta local
+      badge: 'https://cdn-icons-png.flaticon.com/128/188/188940.png',
+      ...options
+    };
+
     try {
-      // Intentar primero con el Service Worker (mejor para PWA)
+      // En escritorio preferimos la API estándar para respuesta inmediata
+      const notification = new Notification(title, defaultOptions);
+      console.log('[NotificationService] Enviada mediante API estándar');
+      
+      notification.onclick = () => {
+        window.focus();
+        notification.close();
+      };
+    } catch (e) {
+      console.log('[NotificationService] API estándar falló, intentando Service Worker:', e.message);
       if ('serviceWorker' in navigator) {
         const reg = await navigator.serviceWorker.getRegistration();
         if (reg) {
-          console.log('[NotificationService] Usando Service Worker para la notificación');
-          await reg.showNotification(title, {
-            icon: '/pwa-192x192.png',
-            badge: '/favicon.ico',
-            vibrate: [200, 100, 200],
-            ...options
-          });
-          return;
+          await reg.showNotification(title, defaultOptions);
+          console.log('[NotificationService] Enviada mediante Service Worker');
         }
       }
-
-      // Fallback o alternativa si no hay SW o no está listo
-      console.log('[NotificationService] Usando API de Notificación estándar');
-      new Notification(title, {
-        icon: '/pwa-192x192.png',
-        badge: '/favicon.ico',
-        ...options
-      });
-    } catch (e) {
-      console.error('[NotificationService] Error al mostrar notificación:', e);
     }
   }
 };
