@@ -185,8 +185,12 @@ export default {
         } catch (e) {
           alert('Error al eliminar amigo');
         }
-      }
     }
+  }
+}
+</script>
+
+<style>
 .user-code-badge {
   display: inline-block;
   margin-top: 0.5rem;
