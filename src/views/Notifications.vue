@@ -11,7 +11,7 @@
     </div>
 
     <!-- Notification Permission Banner -->
-    <div v-if="showPermissionBanner" class="card permission-card-banner">
+    <div v-if="permission === 'default'" class="card permission-card-banner">
       <div class="banner-content">
         <div class="banner-icon">🔔</div>
         <div class="banner-text">
@@ -20,6 +20,17 @@
         </div>
       </div>
       <button @click="requestPermission" class="btn btn-primary">Habilitar ahora</button>
+    </div>
+
+    <!-- Denied Permission State -->
+    <div v-if="permission === 'denied'" class="card permission-card-banner denied">
+      <div class="banner-content">
+        <div class="banner-icon">🚫</div>
+        <div class="banner-text">
+          <h3>Notificaciones Bloqueadas</h3>
+          <p>Has bloqueado las notificaciones. Haz clic en el candado 🔒 (arriba al lado de la URL) para permitir el acceso.</p>
+        </div>
+      </div>
     </div>
 
     <div v-if="loading" class="loading">
@@ -65,11 +76,6 @@ export default {
       loading: true,
       permission: NotificationService.permission
     };
-  },
-  computed: {
-    showPermissionBanner() {
-      return this.permission === 'default';
-    }
   },
   async mounted() {
     await this.fetchNotifications();
@@ -241,6 +247,11 @@ export default {
   background: #f8f9fa;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.permission-card-banner.denied {
+  background: linear-gradient(135deg, #444 0%, #222 100%);
+  opacity: 0.9;
 }
 
 @media (max-width: 600px) {
