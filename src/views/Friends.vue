@@ -184,7 +184,7 @@ export default {
           await this.fetchData();
         } catch (e) {
           alert('Error al eliminar amigo');
-        }
+      }
     }
   }
 }
