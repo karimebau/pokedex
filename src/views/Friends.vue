@@ -4,6 +4,9 @@
       <div>
         <h1 class="page-title">Amigos</h1>
         <p class="page-subtitle">Conecta con otros entrenadores para combatir</p>
+        <div v-if="userCode" class="user-code-badge" title="Comparte este código con tus amigos">
+          Mi Código: <span>{{ userCode }}</span>
+        </div>
       </div>
       <button @click="showAddModal = true" class="btn btn-primary">
         + Invitar Amigo
@@ -88,11 +91,11 @@
         </div>
         <form @submit.prevent="addFriend">
           <div class="form-group">
-            <label class="form-label">Correo del Entrenador</label>
-            <input v-model="newFriendEmail" type="email" class="form-input" placeholder="entrenador@pokemon.com" required autofocus />
+            <label class="form-label">Correo o Código de Entrenador</label>
+            <input v-model="friendQuery" type="text" class="form-input" placeholder="ej. PK-X7Y2Z o email@test.com" required autofocus />
           </div>
           <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;" :disabled="adding">
-            {{ adding ? 'Buscando...' : 'Agregar' }}
+            {{ adding ? 'Buscando Entrenador...' : 'Enviar Solicitud' }}
           </button>
         </form>
       </div>
@@ -111,8 +114,9 @@ export default {
       requests: { incoming: [], outgoing: [] },
       loading: true,
       showAddModal: false,
-      newFriendEmail: '',
+      friendQuery: '',
       adding: false,
+      userCode: JSON.parse(localStorage.getItem('user'))?.user_code || ''
     };
   },
   async mounted() {
@@ -137,8 +141,15 @@ export default {
     async addFriend() {
       this.adding = true;
       try {
-        const res = await api.post('/friends', { email: this.newFriendEmail });
-        this.newFriendEmail = '';
+        const payload = {};
+        if (this.friendQuery.includes('@')) {
+          payload.email = this.friendQuery;
+        } else {
+          payload.user_code = this.friendQuery;
+        }
+
+        const res = await api.post('/friends', payload);
+        this.friendQuery = '';
         this.showAddModal = false;
         await this.fetchData();
         alert(res.data.message || '¡Invitación enviada!');
@@ -176,6 +187,21 @@ export default {
         }
       }
     }
-  }
+.user-code-badge {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  background: var(--bg-card);
+  border: 1px dashed var(--accent);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
 }
-</script>
+
+.user-code-badge span {
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+  margin-left: 0.25rem;
+}
+</style>

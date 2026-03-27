@@ -63,6 +63,7 @@ export default {
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user));
         
+        alert(`¡Registro exitoso!\n\nTu Código de Entrenador es: ${res.data.user.user_code}\n\nCompártelo con tus amigos para que te agreguen.`);
         window.location.href = '/pokemon';
       } catch (err) {
         this.error = err.response?.data?.error || 'Error al registrarse';
