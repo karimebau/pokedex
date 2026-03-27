@@ -39,6 +39,8 @@
         </div>
         
         <div class="navbar-user">
+          <!-- Botón de depuración temporal -->
+          <button @click="testNotification" class="btn-debug" title="Probar Notificaciones">🔔</button>
           <span class="username">Hola, {{ username }}</span>
           <button @click="logout" class="btn-logout">Cerrar Sesión</button>
         </div>
@@ -53,6 +55,7 @@
 
 <script>
 import api from './services/api';
+import { NotificationService } from './services/notifications';
 
 export default {
   name: 'App',
@@ -68,6 +71,21 @@ export default {
   mounted() {
     window.addEventListener('online', this.updateOnlineStatus);
     window.addEventListener('offline', this.updateOnlineStatus);
+
+    // Solicitar permiso de notificaciones al entrar (independiente de login)
+    NotificationService.requestPermission();
+
+    // Fallback por si el navegador bloquea la solicitud automática
+    const handleFirstInteraction = () => {
+      if (NotificationService.permission === 'default') {
+        console.log('[App] Reintentando solicitar permiso tras interacción...');
+        NotificationService.requestPermission();
+      }
+      document.removeEventListener('click', handleFirstInteraction);
+      document.removeEventListener('keydown', handleFirstInteraction);
+    };
+    document.addEventListener('click', handleFirstInteraction);
+    document.addEventListener('keydown', handleFirstInteraction);
 
     if (this.isAuthenticated) {
       this.fetchNotifications();
@@ -102,6 +120,15 @@ export default {
         // Si el contador sube, mostramos el Toast
         if (newCount > this.unreadCount && this.unreadCount > 0) {
           this.triggerToast();
+          
+          // Notificación nativa si hay permiso
+          if (NotificationService.permission === 'granted') {
+            NotificationService.showLocalNotification('¡Nueva notificación!', {
+              body: 'Tienes una nueva invitación o mensaje en PokéRosa.',
+              tag: 'new-notification',
+              renotify: true
+            });
+          }
         }
         
         this.unreadCount = newCount;
@@ -122,6 +149,17 @@ export default {
       setTimeout(() => {
         this.showToast = false;
       }, 5000);
+    },
+    testNotification() {
+      NotificationService.requestPermission().then(granted => {
+        if (granted) {
+          NotificationService.showLocalNotification('¡Funciona!', {
+            body: 'Las notificaciones están configuradas correctamente.'
+          });
+        } else {
+          alert('Estado actual del permiso: ' + NotificationService.permission + '\nSi es "denied", debes cambiarlo manualmente en la configuración del navegador (clic en el candado 🔒).');
+        }
+      });
     }
   },
   watch: {

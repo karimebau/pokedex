@@ -10,6 +10,18 @@
       </button>
     </div>
 
+    <!-- Notification Permission Banner -->
+    <div v-if="showPermissionBanner" class="card permission-card-banner">
+      <div class="banner-content">
+        <div class="banner-icon">🔔</div>
+        <div class="banner-text">
+          <h3>Activar Notificaciones</h3>
+          <p>Recibe alertas instantáneas de batallas y amigos incluso si no estás en la app.</p>
+        </div>
+      </div>
+      <button @click="requestPermission" class="btn btn-primary">Habilitar ahora</button>
+    </div>
+
     <div v-if="loading" class="loading">
       <div class="spinner"></div>
     </div>
@@ -43,14 +55,21 @@
 
 <script>
 import api from '../services/api';
+import { NotificationService } from '../services/notifications';
 
 export default {
   name: 'Notifications',
   data() {
     return {
       notifications: [],
-      loading: true
+      loading: true,
+      permission: NotificationService.permission
     };
+  },
+  computed: {
+    showPermissionBanner() {
+      return this.permission === 'default';
+    }
   },
   async mounted() {
     await this.fetchNotifications();
@@ -106,6 +125,15 @@ export default {
     formatDate(dateStr) {
       const date = new Date(dateStr);
       return date.toLocaleString();
+    },
+    async requestPermission() {
+      const granted = await NotificationService.requestPermission();
+      this.permission = NotificationService.permission;
+      if (granted) {
+        NotificationService.showLocalNotification('¡Notificaciones activadas!', {
+          body: 'Ahora recibirás alertas de PokéRosa en tu escritorio.'
+        });
+      }
     }
   }
 }
@@ -164,5 +192,66 @@ export default {
 
 .delete-btn:hover {
   color: var(--accent);
+}
+
+.permission-card-banner {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #ff477e 0%, #ff8fa3 100%);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  border: none;
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.banner-icon {
+  font-size: 2.5rem;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+.banner-text h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.banner-text p {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.permission-card-banner .btn-primary {
+  background: white;
+  color: var(--accent);
+  white-space: nowrap;
+  padding: 0.75rem 1.5rem;
+  font-weight: 700;
+}
+
+.permission-card-banner .btn-primary:hover {
+  background: #f8f9fa;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+@media (max-width: 600px) {
+  .permission-card-banner {
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+  }
+  .banner-content {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
 }
 </style>

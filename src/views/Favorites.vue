@@ -84,6 +84,7 @@ export default {
               const p = await api.get(`/pokemon/${id}`);
               return p.data;
             } catch (e) {
+              console.warn(`[Offline] No se pudo cargar el detalle del Pokémon #${id} desde la red ni caché.`);
               return null;
             }
           })
@@ -92,6 +93,10 @@ export default {
         this.favorites = details.filter(Boolean);
       } catch (e) {
         console.error('Error fetching favorites', e);
+        // Intentar mostrar algo si falló la carga inicial (aunque NetworkFirst debería manejarlo)
+        if (!navigator.onLine) {
+          alert('Parece que estás offline. Mostrando los datos guardados en caché.');
+        }
       } finally {
         this.loading = false;
       }
