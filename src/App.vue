@@ -123,6 +123,13 @@ export default {
         this.showToast = false;
       }, 5000);
     }
+  },
+  watch: {
+    '$route.path'(newPath) {
+      if (newPath === '/notifications') {
+        this.unreadCount = 0;
+      }
+    }
   }
 }
 </script>

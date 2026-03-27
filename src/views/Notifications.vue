@@ -54,6 +54,9 @@ export default {
   },
   async mounted() {
     await this.fetchNotifications();
+    if (this.notifications.some(n => !n.read)) {
+      await this.readAll();
+    }
   },
   methods: {
     async fetchNotifications() {
