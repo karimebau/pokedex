@@ -21,28 +21,39 @@ export const NotificationService = {
   },
 
   async showLocalNotification(title, options = {}) {
-    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      try {
-        // Intentar usar el Service Worker para mayor fiabilidad (especialmente en móviles/PWA)
-        if ('serviceWorker' in navigator) {
-          const reg = await navigator.serviceWorker.ready;
+    console.log('[NotificationService] Intentando mostrar notificación:', title);
+    if (typeof Notification === 'undefined') return;
+
+    if (Notification.permission !== 'granted') {
+      console.warn('[NotificationService] Permiso no concedido. Estado:', Notification.permission);
+      return;
+    }
+
+    try {
+      // Intentar primero con el Service Worker (mejor para PWA)
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) {
+          console.log('[NotificationService] Usando Service Worker para la notificación');
           await reg.showNotification(title, {
             icon: '/pwa-192x192.png',
             badge: '/favicon.ico',
             vibrate: [200, 100, 200],
             ...options
           });
-        } else {
-          // Fallback al API estándar si no hay SW
-          new Notification(title, {
-            icon: '/pwa-192x192.png',
-            badge: '/favicon.ico',
-            ...options
-          });
+          return;
         }
-      } catch (e) {
-        console.error('Error al mostrar notificación:', e);
       }
+
+      // Fallback o alternativa si no hay SW o no está listo
+      console.log('[NotificationService] Usando API de Notificación estándar');
+      new Notification(title, {
+        icon: '/pwa-192x192.png',
+        badge: '/favicon.ico',
+        ...options
+      });
+    } catch (e) {
+      console.error('[NotificationService] Error al mostrar notificación:', e);
     }
   }
 };
