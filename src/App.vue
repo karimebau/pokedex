@@ -1,5 +1,24 @@
 <template>
   <div id="app">
+    <!-- Offline Banner -->
+    <div v-if="isOffline" class="offline-banner">
+      📡 Estás en modo offline. Algunas funciones requieren internet.
+    </div>
+
+    <!-- New Notification Toast -->
+    <transition name="toast">
+      <div v-if="showToast" class="notification-toast" @click="$router.push('/notifications')">
+        <div class="toast-content">
+          <span class="toast-icon">💌</span>
+          <div class="toast-text">
+            <strong>¡Nueva invitación!</strong>
+            <span>Tienes una nueva notificación de amistad o batalla.</span>
+          </div>
+        </div>
+        <button class="toast-close" @click.stop="showToast = false">×</button>
+      </div>
+    </transition>
+
     <nav v-if="isAuthenticated" class="navbar">
       <div class="navbar-inner">
         <router-link to="/pokemon" class="navbar-brand">
@@ -15,7 +34,7 @@
           <router-link to="/battles">Batallas ⚔️</router-link>
           <router-link to="/notifications" class="nav-notifications">
             Notificaciones 🔔
-            <span v-if="unreadCount > 0" class="badge-dot"></span>
+            <span v-if="unreadCount > 0" class="badge-count">{{ unreadCount }}</span>
           </router-link>
         </div>
         
@@ -40,16 +59,24 @@ export default {
   data() {
     return {
       unreadCount: 0,
-      pollInterval: null
+      pollInterval: null,
+      isOffline: !navigator.onLine,
+      showToast: false,
+      lastCheckCount: 0
     };
   },
   mounted() {
+    window.addEventListener('online', this.updateOnlineStatus);
+    window.addEventListener('offline', this.updateOnlineStatus);
+
     if (this.isAuthenticated) {
       this.fetchNotifications();
       this.pollInterval = setInterval(this.fetchNotifications, 30000);
     }
   },
   beforeUnmount() {
+    window.removeEventListener('online', this.updateOnlineStatus);
+    window.removeEventListener('offline', this.updateOnlineStatus);
     clearInterval(this.pollInterval);
   },
   computed: {
@@ -70,7 +97,14 @@ export default {
       try {
         if (!this.isAuthenticated) return;
         const res = await api.get('/notifications');
-        this.unreadCount = res.data.filter(n => !n.read).length;
+        const newCount = res.data.filter(n => !n.read).length;
+        
+        // Si el contador sube, mostramos el Toast
+        if (newCount > this.unreadCount && this.unreadCount > 0) {
+          this.triggerToast();
+        }
+        
+        this.unreadCount = newCount;
       } catch (e) {
         console.error('Error fetching notifications', e);
       }
@@ -79,6 +113,15 @@ export default {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       this.$router.push('/');
+    },
+    updateOnlineStatus() {
+      this.isOffline = !navigator.onLine;
+    },
+    triggerToast() {
+      this.showToast = true;
+      setTimeout(() => {
+        this.showToast = false;
+      }, 5000);
     }
   }
 }

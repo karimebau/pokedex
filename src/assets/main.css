@@ -257,20 +257,112 @@ a:hover {
   text-align: center;
 }
 
-.nav-notifications {
-  position: relative;
+.badge-count {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: var(--accent);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-full);
+  min-width: 1.2rem;
+  text-align: center;
+  border: 2px solid var(--bg-primary);
+  box-shadow: 0 0 10px var(--accent-glow);
 }
 
-.badge-dot {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 10px;
-  height: 10px;
-  background: var(--accent);
-  border: 2px solid var(--bg-primary);
-  border-radius: 50%;
-  box-shadow: 0 0 10px var(--accent-glow);
+.offline-banner {
+  background: #ff9800;
+  color: white;
+  text-align: center;
+  padding: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+/* ── Toast Notification ──────────────────────────────────── */
+.notification-toast {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 2000;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 20px var(--accent-glow);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  min-width: 300px;
+  max-width: 400px;
+  animation: slideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.toast-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.toast-icon {
+  font-size: 1.5rem;
+  filter: drop-shadow(0 0 5px var(--accent));
+}
+
+.toast-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.toast-text strong {
+  font-size: 0.95rem;
+  color: var(--accent-secondary);
+}
+
+.toast-text span {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0;
+  margin-left: auto;
+  line-height: 1;
+}
+
+.toast-close:hover {
+  color: var(--accent);
+}
+
+/* ── Transitions ─────────────────────────────────────────── */
+.toast-enter-active, .toast-leave-active {
+  transition: all 0.4s ease;
+}
+.toast-enter-from {
+  transform: translateX(100px);
+  opacity: 0;
+}
+.toast-leave-to {
+  transform: translateX(100px);
+  opacity: 0;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }
 
 @keyframes spin {
