@@ -23,9 +23,17 @@
     <div v-else style="display: flex; flex-direction: column; gap: 2rem;">
       <div v-for="team in teams" :key="team.id" class="card team-card">
         <div class="team-header">
-          <h2 class="team-name">{{ team.name }}</h2>
-          <div style="display: flex; gap: 0.5rem;">
-            <button @click="openAddModal(team)" class="btn btn-secondary btn-sm" :disabled="team.pokemonData.length >= 6">
+          <div>
+            <h2 class="team-name">{{ team.name }}</h2>
+            <div 
+              class="status-badge" 
+              :class="team.pokemonData && team.pokemonData.some(p => p !== null) ? 'status-ready' : 'status-empty'"
+            >
+              {{ team.pokemonData && team.pokemonData.some(p => p !== null) ? '✓ Listo para batalla' : '⚠ Sin Pokémon' }}
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+            <button @click="openAddModal(team)" class="btn btn-secondary btn-sm" :disabled="team.pokemonData && team.pokemonData.filter(p => p !== null).length >= 6">
               Añadir Pokémon
             </button>
             <button @click="deleteTeam(team.id)" class="btn btn-danger btn-sm">Eliminar</button>
@@ -33,12 +41,14 @@
         </div>
 
         <div class="team-pokemon-grid">
-          <div v-for="slot in 6" :key="slot" class="team-slot" :class="{ filled: team.pokemonData[slot-1] }">
-            <template v-if="team.pokemonData[slot-1]">
+          <div v-for="slot in 6" :key="slot" class="team-slot" :class="{ filled: team.pokemonData && team.pokemonData[slot-1], loading: fetchingSlots[team.id + '-' + slot] }">
+            <div v-if="fetchingSlots[team.id + '-' + slot]" class="spinner-sm"></div>
+            <template v-else-if="team.pokemonData && team.pokemonData[slot-1]">
               <img :src="team.pokemonData[slot-1].sprite" :alt="team.pokemonData[slot-1].name" :title="team.pokemonData[slot-1].name" />
               <button class="remove-btn" @click="removePokemon(team.id, team.pokemonData[slot-1].id)" title="Remover del equipo">
                 ✖
               </button>
+              <div class="slot-name">{{ team.pokemonData[slot-1].name }}</div>
             </template>
             <template v-else>
               <span style="color: var(--text-muted); font-size: 0.8rem;">Vacío</span>
@@ -121,6 +131,7 @@ export default {
       searchResults: [],
       searchingPokemon: false,
       searchTimeout: null,
+      fetchingSlots: {},
     };
   },
   async mounted() {
@@ -133,27 +144,37 @@ export default {
         const res = await api.get('/teams');
         const dbTeams = res.data;
 
-        // Fetch sprite info for each pokemon in each team
-        for (const team of dbTeams) {
-          team.pokemonData = [];
-          for (const p of team.pokemon) {
-            try {
-              const detail = await api.get(`/pokemon/${p.pokemon_id}`);
-              team.pokemonData.push({
-                id: detail.data.id,
-                name: detail.data.name,
-                sprite: detail.data.sprite,
-                slot: p.slot
-              });
-            } catch (e) {
-              console.error('Error fetching poke detail for team', e);
-            }
+        // Fetch sprite info for each pokemon in each team in parallel
+        await Promise.all(dbTeams.map(async (team) => {
+          team.pokemonData = Array(6).fill(null);
+          
+          if (team.pokemon && team.pokemon.length > 0) {
+            const pokemonLoadingPromises = team.pokemon.map(async (p) => {
+              const slotIdx = p.slot - 1;
+              const slotKey = `${team.id}-${p.slot}`;
+              this.fetchingSlots[slotKey] = true;
+              
+              try {
+                const detail = await api.get(`/pokemon/${p.pokemon_id}`);
+                if (slotIdx >= 0 && slotIdx < 6) {
+                  team.pokemonData[slotIdx] = {
+                    id: p.pokemon_id,
+                    name: detail.data.name,
+                    sprite: detail.data.sprite,
+                    slot: p.slot
+                  };
+                }
+              } catch (e) {
+                console.error(`Error loading slot ${p.slot} for team ${team.name}`, e);
+              } finally {
+                this.fetchingSlots[slotKey] = false;
+              }
+            });
+            await Promise.all(pokemonLoadingPromises);
           }
-          // Sort explicitly by slot just in case
-          team.pokemonData.sort((a, b) => a.slot - b.slot);
-        }
+        }));
 
-        this.teams = dbTeams;
+        this.teams = [...dbTeams];
       } catch (e) {
         console.error('Error fetching teams', e);
       } finally {
@@ -186,8 +207,8 @@ export default {
       this.searchResults = [];
       this.showAddModal = true;
       
-      // Load some default pokemon to show initially
-      this.performPokemonSearch('pikachu'); 
+      // Load a diverse set of pokemon initially
+      this.performPokemonSearch('generation-i'); 
     },
     debounceAddSearch() {
       clearTimeout(this.searchTimeout);

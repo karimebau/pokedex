@@ -219,6 +219,64 @@ a:hover {
   color: var(--accent);
 }
 
+.spinner-sm {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 71, 126, 0.1);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.team-slot.loading {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.team-slot .slot-name {
+  position: absolute;
+  bottom: 4px;
+  width: 100%;
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  color: var(--text-secondary);
+  background: rgba(0,0,0,0.5);
+  border-bottom-left-radius: var(--radius-md);
+  border-bottom-right-radius: var(--radius-md);
+}
+
+.badge {
+  background: var(--accent);
+  color: white;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-full);
+  font-size: 0.65rem;
+  font-weight: 800;
+  min-width: 1.2rem;
+  text-align: center;
+}
+
+.nav-notifications {
+  position: relative;
+}
+
+.badge-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 10px;
+  height: 10px;
+  background: var(--accent);
+  border: 2px solid var(--bg-primary);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ══════════════════════════════════════════════════════════════
    MAIN CONTENT
    ══════════════════════════════════════════════════════════════ */
@@ -746,6 +804,18 @@ a:hover {
   display: flex;
 }
 
+.team-slot .slot-name {
+  position: absolute;
+  bottom: 4px;
+  width: 100%;
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  color: var(--text-secondary);
+  background: rgba(0,0,0,0.3);
+}
+
 /* ══════════════════════════════════════════════════════════════
    BATTLE
    ══════════════════════════════════════════════════════════════ */
@@ -988,3 +1058,32 @@ a:hover {
     padding: 1rem;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   TEAM STATUS BADGES & UTILITIES
+   ══════════════════════════════════════════════════════════════ */
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-ready {
+  background: rgba(46, 204, 113, 0.15);
+  color: #2ecc71;
+  border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.status-empty {
+  background: rgba(230, 57, 70, 0.1);
+  color: #e63946;
+  border: 1px solid rgba(230, 57, 70, 0.2);
+}
+
+.mt-4 { margin-top: 1.5rem; }
+

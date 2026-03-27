@@ -7,6 +7,7 @@ import Favorites from '../views/Favorites.vue'
 import Teams from '../views/Teams.vue'
 import Friends from '../views/Friends.vue'
 import Battles from '../views/Battles.vue'
+import Notifications from '../views/Notifications.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -19,6 +20,7 @@ const router = createRouter({
     { path: '/teams', component: Teams, meta: { auth: true } },
     { path: '/friends', component: Friends, meta: { auth: true } },
     { path: '/battles', component: Battles, meta: { auth: true } },
+    { path: '/notifications', component: Notifications, meta: { auth: true } },
   ]
 })
 

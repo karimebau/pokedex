@@ -232,9 +232,13 @@ export default {
         if (this.favorites.has(id)) {
           await api.delete(`/favorites/${id}`);
           this.favorites.delete(id);
+          // Trigger reactivity in Vue 3 for Set
+          this.favorites = new Set(this.favorites);
         } else {
           await api.post('/favorites', { pokemon_id: id });
           this.favorites.add(id);
+          // Trigger reactivity in Vue 3 for Set
+          this.favorites = new Set(this.favorites);
         }
       } catch (e) {
         alert("Error de API: " + (e.response?.data?.error || e.message));

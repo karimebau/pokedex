@@ -39,20 +39,26 @@
           <label class="form-label">🛡️ Tu Equipo</label>
           <select v-model="setup.myTeamId" class="form-select" required>
             <option value="" disabled>Selecciona tu equipo...</option>
-            <option v-for="t in teams" :key="t.id" :value="t.id" :disabled="t.pokemon.length === 0">
-              {{ t.name }} ({{ t.pokemon.length }} Pokémon)
+            <option v-for="t in teams" :key="t.id" :value="t.id">
+              {{ t.name }} ({{ t.pokemon.length }} Pokémon) {{ t.pokemon.length === 0 ? '⚠️' : '' }}
             </option>
           </select>
+          <p v-if="setup.myTeamId && teams.find(t => t.id === setup.myTeamId)?.pokemon.length === 0" style="color: #e63946; font-size: 0.8rem; margin-top: 0.5rem; font-weight: 600;">
+            ⚠️ Este equipo está vacío. Añade Pokémon en la sección de Equipos para poder batallar.
+          </p>
         </div>
 
         <div class="form-group" style="margin-top: 1.5rem;" v-if="setup.opponentId && !loadingOpponentTeams">
           <label class="form-label">⚔️ Equipo del Oponente</label>
           <select v-model="setup.opponentTeamId" class="form-select" required>
             <option value="" disabled>Selecciona el equipo a enfrentar...</option>
-            <option v-for="t in opponentTeams" :key="t.id" :value="t.id" :disabled="t.pokemon_count === 0">
-              {{ t.name }}
+            <option v-for="t in opponentTeams" :key="t.id" :value="t.id">
+              {{ t.name }} ({{ t.pokemon_count }} Pokémon) {{ t.pokemon_count === 0 ? '⚠️' : '' }}
             </option>
           </select>
+          <p v-if="setup.opponentTeamId && opponentTeams.find(t => t.id === setup.opponentTeamId)?.pokemon_count === 0" style="color: #6890f0; font-size: 0.8rem; margin-top: 0.5rem; font-weight: 600;">
+            ⚠️ El equipo seleccionado del oponente no tiene Pokémon. Pídele que añada algunos!
+          </p>
           <p v-if="opponentTeams.length === 0" style="color: var(--accent); font-size: 0.8rem; margin-top: 0.5rem;">
             Tu amigo aún no ha creado ningún equipo.
           </p>
@@ -60,14 +66,20 @@
         
         <div v-if="loadingOpponentTeams" class="spinner" style="margin: 1.5rem auto;"></div>
 
-        <button 
-          type="submit" 
-          class="btn btn-primary" 
-          style="width: 100%; margin-top: 2rem; font-size: 1.2rem; padding: 1rem;" 
-          :disabled="!isValidSetup || loadingBattle"
-        >
-          {{ loadingBattle ? 'Preparando arena...' : '¡INICIAR BATALLA!' }}
-        </button>
+        <div style="margin-top: 2rem;">
+          <button 
+            type="submit" 
+            class="btn btn-primary" 
+            style="width: 100%; font-size: 1.2rem; padding: 1rem;" 
+            :disabled="!isValidSetup || loadingBattle"
+          >
+            {{ loadingBattle ? 'Preparando arena...' : '¡INICIAR BATALLA!' }}
+          </button>
+          
+          <p v-if="!isValidSetup && (setup.myTeamId || setup.opponentTeamId)" style="text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-top: 0.75rem;">
+            {{ getDisableReason }}
+          </p>
+        </div>
       </form>
     </div>
 
@@ -201,7 +213,27 @@ export default {
   },
   computed: {
     isValidSetup() {
-      return this.setup.opponentId && this.setup.myTeamId && this.setup.opponentTeamId;
+      const myTeam = this.teams.find(t => t.id === this.setup.myTeamId);
+      const opponentTeam = this.opponentTeams.find(t => t.id === this.setup.opponentTeamId);
+      
+      return this.setup.opponentId && 
+             this.setup.myTeamId && 
+             this.setup.opponentTeamId &&
+             myTeam?.pokemon?.length > 0 &&
+             opponentTeam?.pokemon_count > 0;
+    },
+    getDisableReason() {
+      if (!this.setup.opponentId) return 'Selecciona un oponente';
+      if (!this.setup.myTeamId) return 'Selecciona tu equipo';
+      if (!this.setup.opponentTeamId) return 'Selecciona el equipo del oponente';
+      
+      const myTeam = this.teams.find(t => t.id === this.setup.myTeamId);
+      if (myTeam?.pokemon?.length === 0) return 'Tu equipo seleccionado no tiene Pokémon';
+      
+      const opponentTeam = this.opponentTeams.find(t => t.id === this.setup.opponentTeamId);
+      if (opponentTeam?.pokemon_count === 0) return 'El equipo del oponente no tiene Pokémon';
+      
+      return '';
     }
   },
   async mounted() {
@@ -238,38 +270,18 @@ export default {
       if (!this.setup.opponentId) return;
       this.loadingOpponentTeams = true;
       try {
-        // Simple trick: To get opponent teams, we'd ideally need a specific endpoint.
-        // For now, since battle endpoint accepts any team ID that belongs to opponent,
-        // we need to make sure the backend supports reading opponent teams if friends, OR
-        // we simulate it. I will add a mock for safety if no endpoint exists, but let's assume
-        // we can fetch opponent profile or we just use a generic team if not available.
-        // *Correction*: We need a way to know opponent teams. I'll add a quick endpoint simulation here.
-        // Actually, since I didn't create a GET /api/teams/user/:id endpoint, I will just pick a random 
-        // valid team if I can't fetch it, or I'll prompt user to just pick "Equipo Defecto" and we'll send it.
-        // Wait, the backend doesn't have an endpoint for opponent teams. Let's fetch battles history to find one, 
-        // or I'll just skip the opponent team selection UI and have the backend pick it, BUT backend expects opponent_team_id.
-        
-        // Since I control the code, I will make a quick manual request using the existing battles endpoint trick? No.
-        // I'll fetch `/api/battles` and see if they have past teams.
-        // If it's too complex, I'll allow the user to battle the "last used" team of the friend.
-        // Wait, we can't. I MUST HAVE the opponent team ID. Let me fetch it by using a workaround or just show a dummy selection.
-        
-        // *WORKAROUND*: Since I am a skilled dev, I realize I missed the 'get opponent teams' endpoint. 
-        // I will just use ID 1, 2, 3 as a guess, or prompt the user.
-        // Actually, the requirements say "Management of teams". We can assume the user coordinates with friend.
-        // To fix this without modifying backend: The backend validates `SELECT * FROM teams WHERE id = ? AND user_id = ?`.
-        // So we just have to guess an ID. This is a flaw. I will fix it by modifying the backend right now in a quick parallel tool call? 
-        // No, I can't parallel here easily. I will just mock it for the UI and if it fails, it fails.
-        // WAIT, I CAN modify the backend. I'll do it right after saving this file.
-        // For now, I'll fetch from `/api/teams/user/${opponentId}`. I will create that endpoint!
-        
         const res = await api.get(`/teams/user/${this.setup.opponentId}`);
         this.opponentTeams = res.data;
-        if (this.opponentTeams.length > 0) {
+        
+        // Auto-select the first valid team (with pokemon)
+        const validTeam = this.opponentTeams.find(t => t.pokemon_count > 0);
+        if (validTeam) {
+          this.setup.opponentTeamId = validTeam.id;
+        } else if (this.opponentTeams.length > 0) {
+          // Fallback to first one if none are valid, but it will show warning
           this.setup.opponentTeamId = this.opponentTeams[0].id;
         }
       } catch (e) {
-        // Fallback or error
         this.opponentTeams = [];
       } finally {
         this.loadingOpponentTeams = false;
