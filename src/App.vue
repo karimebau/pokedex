@@ -65,7 +65,7 @@ export default {
       pollInterval: null,
       isOffline: !navigator.onLine,
       showToast: false,
-      lastCheckCount: 0
+      lastCheckCount: null
     };
   },
   mounted() {
@@ -117,8 +117,9 @@ export default {
         const res = await api.get('/notifications');
         const newCount = res.data.filter(n => !n.read).length;
         
-        // Si el contador sube, mostramos el Toast
-        if (newCount > this.unreadCount && this.unreadCount > 0) {
+        
+        // Si el contador sube respecto al último check exitoso
+        if (this.lastCheckCount !== null && newCount > this.lastCheckCount) {
           this.triggerToast();
           
           // Notificación nativa si hay permiso
@@ -132,6 +133,7 @@ export default {
         }
         
         this.unreadCount = newCount;
+        this.lastCheckCount = newCount;
       } catch (e) {
         console.error('Error fetching notifications', e);
       }
