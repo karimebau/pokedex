@@ -25,8 +25,12 @@ const processQueue = async () => {
       console.log(`[Offline] Sincronizado: ${request.method} ${request.url}`);
     } catch (e) {
       console.error(`[Offline] Error reintentando ${request.url}:`, e);
-      offlineQueue.push(request); // Re-encolar si falla de nuevo
-      saveQueue();
+      // Only requeue if we have a network error or a 5xx backend error.
+      // 4xx errors (duplicate, unauthorized, bad request) should be dropped forever.
+      if (!e.response || e.response.status >= 500) {
+        offlineQueue.push(request); // Re-encolar si falla por red o servidor caído
+        saveQueue();
+      }
     }
   }
 };
@@ -46,7 +50,19 @@ api.interceptors.request.use((config) => {
       headers: config.headers
     });
     saveQueue();
-    return Promise.reject(new Error('Petición encolada (Offline)'));
+    
+    // Simulate successful request to update UI optimistically without throwing error 
+    config.adapter = () => {
+      return Promise.resolve({
+        data: { message: 'offline-queued', __offline: true },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config,
+        request: {}
+      });
+    };
+    return config;
   }
 
   const token = localStorage.getItem('token');
