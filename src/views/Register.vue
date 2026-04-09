@@ -2,9 +2,9 @@
   <div class="auth-page">
     <div class="auth-card">
       <div class="auth-logo">
-        <div class="pokeball-icon" style="width:48px;height:48px;margin:0 auto 1rem;"></div>
-        <h1>Registro PokéRosa 🎀</h1>
-        <p>Conviértete en una Entrenadora Pokémon</p>
+        <div class="pokeball-icon" style="margin: 0 auto 1.5rem;"></div>
+        <h1 class="page-title" style="margin-bottom: 0.5rem;">Registro PokéRosa 🎀</h1>
+        <p style="color: var(--text-secondary);">Conviértete en una Entrenadora Pokémon ✨</p>
       </div>
 
       <div v-if="error" class="auth-error">{{ error }}</div>
@@ -25,8 +25,8 @@
           <input v-model="password" type="password" class="form-input" placeholder="••••••••" required />
         </div>
         
-        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;" :disabled="loading">
-          {{ loading ? 'Registrando...' : 'Obtener Licencia Rosa ✨' }}
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem; height: 50px;" :disabled="loading">
+          {{ loading ? 'Registrando...' : 'Obtener Licencia Rosa 💖' }}
         </button>
       </form>
 

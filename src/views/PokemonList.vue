@@ -1,40 +1,40 @@
 <template>
   <div>
     <div class="page-header">
-      <h1 class="page-title">Directorio Pokémon</h1>
-      <p class="page-subtitle">Explora y descubre Pokémon de todas las regiones</p>
+      <h1 class="page-title">Directorio Pokémon 🌸</h1>
+      <p style="color: var(--text-secondary); margin-bottom: 2rem;">Explora y descubre Pokémon de todas las regiones</p>
     </div>
 
     <!-- Filters -->
     <div class="filters-bar">
       <div class="filter-group">
-        <label>Buscar por Nombre</label>
+        <label class="form-label">Buscar por Nombre</label>
         <input v-model="filters.name" @input="debounceSearch" type="text" class="form-input" placeholder="Ej. Pikachu" />
       </div>
       
       <div class="filter-group">
-        <label>Generación</label>
+        <label class="form-label">Generación</label>
         <select v-model="filters.generation" @change="applyFilters" class="form-select">
           <option value="">Todas</option>
           <option v-for="gen in generations" :key="gen.id" :value="gen.id">
-            Generación {{ gen.id }} ({{ gen.name }})
+            Gen {{ gen.id }} ({{ gen.name }})
           </option>
         </select>
       </div>
 
       <div class="filter-group">
-        <label>Tipo 1</label>
+        <label class="form-label">Tipo Principal</label>
         <select v-model="filters.type1" @change="applyFilters" class="form-select">
           <option value="">Todos</option>
-          <option v-for="type in types" :key="type" :value="type" class="type-option">
+          <option v-for="type in types" :key="type" :value="type">
             {{ type }}
           </option>
         </select>
       </div>
 
       <div class="filter-group">
-        <label>Tipo 2</label>
-        <select v-model="filters.type2" @change="applyFilters" class="form-select" :disabled="!filters.type1" title="Selecciona Tipo 1 primero">
+        <label class="form-label">Tipo Secundario</label>
+        <select v-model="filters.type2" @change="applyFilters" class="form-select" :disabled="!filters.type1">
           <option value="">Todos</option>
           <option v-for="type in types" :key="type" :value="type">
             {{ type }}
@@ -42,8 +42,8 @@
         </select>
       </div>
       
-      <div class="filter-group" style="flex: 0 0 auto; display: flex; align-items: flex-end;">
-        <button @click="clearFilters" class="btn btn-secondary" style="height: 44px;">Limpiar</button>
+      <div class="filter-group" style="display: flex; align-items: flex-end;">
+        <button @click="clearFilters" class="btn btn-secondary" style="width: 100%; height: 48px;">Limpiar ✨</button>
       </div>
     </div>
 
@@ -53,10 +53,10 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="pokemon.length === 0" class="empty-state">
-      <div class="empty-icon">🔍</div>
-      <h3>No se encontraron Pokémon</h3>
-      <p>Intenta ajustar tus filtros de búsqueda.</p>
+    <div v-else-if="pokemon.length === 0" class="empty-state" style="text-align: center; padding: 4rem 2rem;">
+      <div style="font-size: 4rem; margin-bottom: 1rem;">🔍</div>
+      <h3 style="color: var(--primary);">No se encontraron Pokémon</h3>
+      <p style="color: var(--text-secondary);">Intenta ajustar tus filtros de búsqueda.</p>
     </div>
 
     <!-- Pokemon Grid -->
@@ -71,18 +71,18 @@
           class="favorite-btn" 
           :class="{ active: isFavorite(p.id) }"
           @click.stop="toggleFavorite(p.id)"
-          :title="isFavorite(p.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'"
+          style="position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 1.5rem; cursor: pointer; z-index: 10;"
         >
           {{ isFavorite(p.id) ? '❤️' : '🤍' }}
         </button>
         
-        <span class="pokemon-id">#{{ String(p.id).padStart(4, '0') }}</span>
+        <span class="pokemon-id" style="font-size: 0.85rem; font-weight: 800; color: var(--text-secondary); opacity: 0.6; align-self: flex-start;">#{{ String(p.id).padStart(4, '0') }}</span>
         
         <img :src="p.sprite" :alt="p.name" class="pokemon-sprite" loading="lazy" />
         
-        <h3 class="pokemon-name">{{ p.name }}</h3>
+        <h3 class="pokemon-name" style="margin-top: 1rem; text-transform: capitalize;">{{ p.name }}</h3>
         
-        <div class="pokemon-types">
+        <div class="pokemon-types" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
           <span 
             v-for="type in p.types" 
             :key="type" 
@@ -96,7 +96,7 @@
     </div>
 
     <!-- Pagination -->
-    <div v-if="!loading && totalPages > 1" class="pagination">
+    <div v-if="!loading && totalPages > 1" class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 3rem; margin-bottom: 2rem;">
       <button 
         class="btn btn-secondary" 
         :disabled="currentPage === 1"
@@ -104,7 +104,7 @@
       >
         Anterior
       </button>
-      <span style="display: flex; align-items: center; padding: 0 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+      <span style="color: var(--text-secondary); font-weight: 600; font-size: 0.9rem;">
         Página {{ currentPage }} de {{ totalPages }}
       </span>
       <button 

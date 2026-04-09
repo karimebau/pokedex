@@ -1,35 +1,33 @@
 <template>
-  <div class="notifications-page">
-    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
-      <div>
+  <div>
+    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2.5rem;">
+      <div style="flex: 1; min-width: 250px;">
         <h1 class="page-title">Notificaciones 🔔</h1>
-        <p class="page-subtitle">Mantente al tanto de tus solicitudes y actividad</p>
+        <p style="color: var(--text-secondary); margin-bottom: 0;">Mantente al tanto de tus solicitudes y actividad</p>
       </div>
-      <button v-if="notifications.length > 0" @click="readAll" class="btn btn-secondary btn-sm">
-        Marcar todas como leídas
+      <button v-if="notifications.length > 0" @click="readAll" class="btn btn-secondary btn-sm" style="height: 40px;">
+        Marcar todas como leídas ✨
       </button>
     </div>
 
     <!-- Notification Permission Banner -->
-    <div v-if="permission === 'default'" class="card permission-card-banner">
-      <div class="banner-content">
-        <div class="banner-icon">🔔</div>
+    <div v-if="permission === 'default'" class="card" style="margin-bottom: 2rem; border-color: var(--primary); background: linear-gradient(135deg, rgba(255,143,177,0.2) 0%, rgba(255,71,126,0.1) 100%); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem; padding: 2rem;">
+      <div class="banner-content" style="display: flex; align-items: center; gap: 1.5rem; flex: 1; min-width: 280px;">
+        <div class="banner-icon" style="font-size: 3rem; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));">🔔</div>
         <div class="banner-text">
-          <h3>Activar Notificaciones</h3>
-          <p>Recibe alertas instantáneas de batallas y amigos incluso si no estás en la app.</p>
+          <h3 style="margin-bottom: 0.3rem; color: var(--primary); font-size: 1.3rem;">Activar Notificaciones 🎀</h3>
+          <p style="color: var(--text-secondary); margin: 0; font-size: 0.95rem;">Recibe alertas instantáneas de batallas y amigos en tiempo real.</p>
         </div>
       </div>
-      <button @click="requestPermission" class="btn btn-primary">Habilitar ahora</button>
+      <button @click="requestPermission" class="btn btn-primary" style="height: 45px; padding: 0 2rem;">Habilitar ✨</button>
     </div>
 
     <!-- Denied Permission State -->
-    <div v-if="permission === 'denied'" class="card permission-card-banner denied">
-      <div class="banner-content">
-        <div class="banner-icon">🚫</div>
-        <div class="banner-text">
-          <h3>Notificaciones Bloqueadas</h3>
-          <p>Has bloqueado las notificaciones. Haz clic en el candado 🔒 (arriba al lado de la URL) para permitir el acceso.</p>
-        </div>
+    <div v-if="permission === 'denied'" class="card" style="margin-bottom: 2rem; border-color: var(--error); background: rgba(230,57,70,0.1); padding: 1.5rem; display: flex; align-items: center; gap: 1.5rem;">
+      <div style="font-size: 2.5rem;">🚫</div>
+      <div>
+        <h3 style="color: var(--error); margin-bottom: 0.3rem; font-size: 1.2rem;">Notificaciones Bloqueadas</h3>
+        <p style="color: var(--text-secondary); margin: 0; font-size: 0.9rem;">Has bloqueado las notificaciones. Cambia el permiso en tu navegador para recibir alertas.</p>
       </div>
     </div>
 
@@ -37,28 +35,32 @@
       <div class="spinner"></div>
     </div>
 
-    <div v-else-if="notifications.length === 0" class="empty-state">
-      <div class="empty-icon">🎈</div>
-      <h3>No tienes notificaciones</h3>
-      <p>Te avisaremos cuando pase algo interesante.</p>
+    <div v-else-if="notifications.length === 0" class="empty-state" style="text-align: center; padding: 5rem 2rem;">
+      <div style="font-size: 4rem; margin-bottom: 1.5rem; opacity: 0.5;">🎈</div>
+      <h3 style="color: var(--primary);">No tienes notificaciones</h3>
+      <p style="color: var(--text-secondary);">Te avisaremos cuando pase algo interesante en la arena.</p>
     </div>
 
-    <div v-else class="notifications-list">
+    <div v-else class="notifications-list" style="display: flex; flex-direction: column; gap: 1rem;">
       <div 
         v-for="n in notifications" 
         :key="n.id" 
         class="card notification-card" 
         :class="{ unread: !n.read }"
         @click="markAsRead(n)"
+        style="padding: 1.5rem; display: flex; align-items: center; gap: 1.5rem; position: relative; cursor: pointer; transition: transform 0.2s;"
+        :style="!n.read ? 'border-left: 4px solid var(--primary); background: rgba(255,71,126,0.05);' : 'opacity: 0.8;'"
       >
-        <div class="notification-icon">
+        <div class="notification-icon" style="font-size: 1.8rem; background: rgba(0,0,0,0.1); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
           {{ getIcon(n.type) }}
         </div>
-        <div class="notification-body">
-          <div class="notification-message">{{ n.message }}</div>
-          <div class="notification-time">{{ formatDate(n.created_at) }}</div>
+        <div class="notification-body" style="flex: 1;">
+          <div class="notification-message" style="font-weight: 700; color: var(--text-primary); font-size: 1.05rem;">{{ n.message }}</div>
+          <div class="notification-time" style="font-size: 0.8rem; color: var(--text-secondary); opacity: 0.6; margin-top: 0.4rem; display: flex; align-items: center; gap: 0.3rem;">
+            <span>🕒</span> {{ formatDate(n.created_at) }}
+          </div>
         </div>
-        <button class="delete-btn" @click.stop="deleteNotification(n.id)">&times;</button>
+        <button class="delete-btn" @click.stop="deleteNotification(n.id)" style="background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer; opacity: 0.5; transition: opacity 0.2s; padding: 0.5rem;">&times;</button>
       </div>
     </div>
   </div>

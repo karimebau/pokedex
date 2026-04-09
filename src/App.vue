@@ -19,6 +19,20 @@
       </div>
     </transition>
 
+    <!-- Battle Invitation Popup -->
+    <transition name="toast">
+      <div v-if="battleInvite" class="notification-toast" style="background-color: var(--card-bg); border-left: 4px solid var(--accent); padding: 1.5rem; bottom: 80px;">
+        <div style="font-weight: 700; margin-bottom: 0.5rem;">⚔️ ¡Reto de Batalla!</div>
+        <p style="margin-bottom: 1rem; font-size: 0.9rem;">
+          <strong>{{ battleInvite.challengerName }}</strong> te ha desafiado usando uno de tus equipos. ¿Aceptas?
+        </p>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn btn-primary btn-sm" @click="acceptBattle">¡Aceptar!</button>
+          <button class="btn btn-secondary btn-sm" @click="declineBattle">Rechazar</button>
+        </div>
+      </div>
+    </transition>
+
     <nav v-if="isAuthenticated" class="navbar">
       <div class="navbar-inner">
         <router-link to="/pokemon" class="navbar-brand">
@@ -27,22 +41,39 @@
         </router-link>
         
         <div class="navbar-links">
-          <router-link to="/pokemon">Explorar 🎀</router-link>
-          <router-link to="/favorites">Favoritos 💖</router-link>
-          <router-link to="/teams">Equipos ✨</router-link>
-          <router-link to="/friends">Amigos 💌</router-link>
-          <router-link to="/battles">Batallas ⚔️</router-link>
-          <router-link to="/notifications" class="nav-notifications">
-            Notificaciones 🔔
-            <span v-if="unreadCount > 0" class="badge-count">{{ unreadCount }}</span>
+          <router-link to="/pokemon" title="Explorar">
+            <span class="nav-icon">🎀</span>
+            <span class="nav-text">Explorar</span>
+          </router-link>
+          <router-link to="/favorites" title="Favoritos">
+            <span class="nav-icon">💖</span>
+            <span class="nav-text">Favoritos</span>
+          </router-link>
+          <router-link to="/teams" title="Equipos">
+            <span class="nav-icon">✨</span>
+            <span class="nav-text">Equipos</span>
+          </router-link>
+          <router-link to="/friends" title="Amigos">
+            <span class="nav-icon">💌</span>
+            <span class="nav-text">Amigos</span>
+          </router-link>
+          <router-link to="/battles" title="Batallas">
+            <span class="nav-icon">⚔️</span>
+            <span class="nav-text">Batallas</span>
+          </router-link>
+          <router-link to="/notifications" class="nav-notifications" title="Notificaciones">
+            <span class="nav-icon">
+              🔔
+              <span v-if="unreadCount > 0" class="badge-count">{{ unreadCount }}</span>
+            </span>
+            <span class="nav-text">Notis</span>
           </router-link>
         </div>
         
         <div class="navbar-user">
-          <!-- Botón de depuración temporal -->
-          <button @click="testNotification" class="btn-debug" title="Probar Notificaciones">🔔</button>
+          <button @click="testNotification" class="btn btn-secondary btn-sm" style="padding: 0.5rem; border-radius: 50%; width: 40px; height: 40px;" title="Probar Notificaciones">🔔</button>
           <span class="username">Hola, {{ username }}</span>
-          <button @click="logout" class="btn-logout">Cerrar Sesión</button>
+          <button @click="logout" class="btn btn-primary btn-sm">Salir</button>
         </div>
       </div>
     </nav>
@@ -56,6 +87,7 @@
 <script>
 import api from './services/api';
 import { NotificationService } from './services/notifications';
+import { connectSocket, disconnectSocket, getSocket, socketState } from './services/socket';
 
 export default {
   name: 'App',
@@ -90,12 +122,21 @@ export default {
     if (this.isAuthenticated) {
       this.fetchNotifications();
       this.pollInterval = setInterval(this.fetchNotifications, 30000);
+      connectSocket(); // Conectar sockets al montar si hay login
     }
+    
+    // Auto navegador
+    window.addEventListener('battle-start-event', () => {
+      if (this.$route.path !== '/battles') {
+        this.$router.push('/battles');
+      }
+    });
   },
   beforeUnmount() {
     window.removeEventListener('online', this.updateOnlineStatus);
     window.removeEventListener('offline', this.updateOnlineStatus);
     clearInterval(this.pollInterval);
+    disconnectSocket();
   },
   computed: {
     isAuthenticated() {
@@ -108,6 +149,9 @@ export default {
       } catch {
         return '';
       }
+    },
+    battleInvite() {
+      return socketState.inviteParams;
     }
   },
   methods: {
@@ -138,7 +182,27 @@ export default {
         console.error('Error fetching notifications', e);
       }
     },
+    acceptBattle() {
+      const socket = getSocket();
+      if (socket && this.battleInvite) {
+        socket.emit('battle_accept', {
+          challengerId: this.battleInvite.challengerId,
+          defenderTeamId: this.battleInvite.challengerTeamMeta.opponentTeamId
+        });
+        socketState.inviteParams = null; // Esconder popup
+      }
+    },
+    declineBattle() {
+      const socket = getSocket();
+      if (socket && this.battleInvite) {
+        socket.emit('battle_decline', {
+          challengerId: this.battleInvite.challengerId
+        });
+        socketState.inviteParams = null;
+      }
+    },
     logout() {
+      disconnectSocket();
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       this.$router.push('/');
