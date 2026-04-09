@@ -291,6 +291,7 @@ export default {
   },
   beforeUnmount() {
     if (this.animationTimer) clearInterval(this.animationTimer);
+    this.resetBattle();
   },
   methods: {
     async fetchFriends() {
