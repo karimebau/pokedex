@@ -233,6 +233,23 @@ export default {
       if (newPath === '/notifications') {
         this.unreadCount = 0;
       }
+      
+      const isAuth = !!localStorage.getItem('token');
+      const socket = getSocket();
+      
+      if (isAuth && (!socket || !socket.connected)) {
+        connectSocket();
+        this.fetchNotifications();
+        if (!this.pollInterval) {
+          this.pollInterval = setInterval(this.fetchNotifications, 30000);
+        }
+      } else if (!isAuth) {
+        disconnectSocket();
+        if (this.pollInterval) {
+          clearInterval(this.pollInterval);
+          this.pollInterval = null;
+        }
+      }
     }
   }
 }
