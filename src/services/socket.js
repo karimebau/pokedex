@@ -1,11 +1,11 @@
 import { io } from 'socket.io-client';
 import { reactive } from 'vue';
-import router from '../router'; // Asumiendo que router está aquí si necesitamos push
 
 export const socketState = reactive({
-  inviteParams: null, // Para guardar quien te invitó
-  activeBattlePayload: null, // Para guardar los datos de la batalla cuando inicie
-  waitingForOpponent: false // Para que el retador sepa que está esperando
+  inviteParams: null,
+  activeBattlePayload: null,
+  waitingForOpponent: false,
+  pendingChallengerTeamId: null  // ✅ FIX: mover aquí para que persista entre componentes
 });
 
 let socket = null;
@@ -16,20 +16,31 @@ export const connectSocket = () => {
 
   if (socket && socket.connected) return socket;
 
-  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-  const serverUrl = backendUrl.replace('/api', '');
+  // ✅ FIX: construir la URL base correctamente
+  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+  const serverUrl = backendUrl.replace(/\/api$/, '');  // quita solo el /api del final
+
+  console.log('🔗 Conectando sockets a:', serverUrl);
 
   socket = io(serverUrl, {
-    auth: { token }
+    auth: { token },
+    // ✅ FIX: iniciar con polling (compatible con Railway) y luego upgradear
+    transports: ['polling', 'websocket'],
+    reconnectionAttempts: 5,
+    reconnectionDelay: 2000
   });
 
   socket.on('connect', () => {
-    console.log('🔗 Sockets Conectados');
+    console.log('✅ Sockets conectados, id:', socket.id);
   });
 
-  // Escuchar invitaciones
+  socket.on('connect_error', (err) => {
+    console.error('❌ Error de conexión socket:', err.message);
+  });
+
+  // Escuchar invitaciones de batalla
   socket.on('battle_invite_received', (data) => {
-    // data: { challengerId, challengerName, challengerTeamId, opponentTeamId }
+    console.log('📨 Invitación de batalla recibida:', data);
     socketState.inviteParams = data;
   });
 
@@ -39,19 +50,15 @@ export const connectSocket = () => {
     alert(`El entrenador ${data.defenderName} rechazó tu invitación de batalla.`);
   });
 
-  // Retador recibe aceptación y gatilla la batalla
+  // ✅ FIX: usar pendingChallengerTeamId desde socketState
   socket.on('battle_accepted', async (data) => {
-    // data: { defenderId, defenderTeamId }
-    // Only the challenger gets here. They must have the setup in their inviteParams memory? No, we created teamMeta in backend
-    // Since we are the challenger, we have to fire POST /battles
     try {
       const api = (await import('./api')).default;
       await api.post('/battles', {
         opponent_id: data.defenderId,
-        challenger_team_id: socketState.pendingChallengerTeamId,
+        challenger_team_id: socketState.pendingChallengerTeamId,  // ✅ ahora tiene valor
         opponent_team_id: data.defenderTeamId
       });
-      // The push of battle_started will arrive naturally
     } catch (e) {
       console.error('Error starting realtime battle:', e);
       socketState.waitingForOpponent = false;
@@ -62,12 +69,16 @@ export const connectSocket = () => {
   // Ambos reciben el inicio de batalla
   socket.on('battle_started', (payload) => {
     socketState.waitingForOpponent = false;
-    socketState.inviteParams = null; // quitar popup si existía
+    socketState.pendingChallengerTeamId = null;
+    socketState.inviteParams = null;
     socketState.activeBattlePayload = payload;
-    
-    // Navegar automáticamente a la batalla
-    // Asegurarse de que el router esté importado / manejado
     window.dispatchEvent(new CustomEvent('battle-start-event'));
+  });
+
+  // Error de invitación (oponente offline)
+  socket.on('battle_invite_error', (data) => {
+    socketState.waitingForOpponent = false;
+    alert(data.error || 'El oponente no está disponible.');
   });
 
   return socket;

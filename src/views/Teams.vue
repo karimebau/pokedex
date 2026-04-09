@@ -167,13 +167,6 @@ export default {
 
         // Fetch sprite info for each pokemon in each team in parallel
         await Promise.all(dbTeams.map(async (team) => {
-          // ✅ FIX: garantizar que team.id siempre sea string
-          if (!team.id && team._id) {
-            team.id = typeof team._id === 'object'
-              ? team._id.toString()
-              : team._id;
-          }
-
           team.pokemonData = Array(6).fill(null);
           
           if (team.pokemon && team.pokemon.length > 0) {
@@ -231,9 +224,12 @@ export default {
     },
     openAddModal(team) {
       this.activeTeam = team;
+      console.log('[Teams] openAddModal - team:', team, 'id:', team.id, '_id:', team._id);
       this.addSearch = '';
       this.searchResults = [];
       this.showAddModal = true;
+      
+      // Load a diverse set of pokemon initially
       this.performPokemonSearch('generation-i'); 
     },
     debounceAddSearch() {
@@ -249,6 +245,7 @@ export default {
     async performPokemonSearch(query) {
       this.searchingPokemon = true;
       try {
+        // We use the pokemon edge with 'name' query
         const res = await api.get(`/pokemon?name=${query}`);
         this.searchResults = res.data.pokemon || [];
       } catch (e) {
@@ -258,18 +255,12 @@ export default {
       }
     },
     async addPokemonToTeam(pokemonId) {
-      // ✅ FIX: asegurar que el id sea siempre string limpio
-      const teamId = this.activeTeam?.id
-        ? String(this.activeTeam.id)
-        : this.activeTeam?._id
-          ? String(this.activeTeam._id)
-          : null;
-
+      const teamId = this.activeTeam?.id || this.activeTeam?._id;
+      console.log('[Teams] addPokemonToTeam - teamId:', teamId, 'pokemonId:', pokemonId);
       if (!teamId) {
         alert('Error: No se pudo identificar el equipo. Intenta recargando la página.');
         return;
       }
-
       try {
         await api.post(`/teams/${teamId}/pokemon`, { pokemon_id: pokemonId });
         this.showAddModal = false;
