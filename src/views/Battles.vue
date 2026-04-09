@@ -389,12 +389,21 @@ export default {
     },
     playAnimation() {
       this.visibleLog = [];
-      let i = 0;
+      const startTime = Date.now();
+      const intervalMs = 800; // 800ms time step per discrete action
+      let lastI = -1;
       
       this.animationTimer = setInterval(() => {
-        if (i < this.fullLog.length) {
-          const entry = this.fullLog[i];
+        const elapsed = Date.now() - startTime;
+        const targetFrame = Math.floor(elapsed / intervalMs);
+        
+        // Catch up on missed frames (e.g., if tab went inactive and browser paused setInterval)
+        while (lastI < targetFrame && lastI < this.fullLog.length - 1) {
+          lastI++;
+          const entry = this.fullLog[lastI];
           this.visibleLog.push(entry);
+          
+          const isCatchingUp = lastI < targetFrame; // true if this isn't the final frame of this tick
           
           if (entry.type === 'matchup') {
             this.currentMatchup = {
@@ -405,15 +414,8 @@ export default {
             const attackerSide = entry.attacker === this.currentMatchup?.pokemon1?.name ? 1 : 2;
             const defenderSide = attackerSide === 1 ? 2 : 1;
             
-            this.combatFX = { attacker: attackerSide, defender: defenderSide };
-            
-            // Clear FX after animation
-            setTimeout(() => {
-              this.combatFX = { attacker: null, defender: null };
-            }, 600);
-
-            // Update HP visually shortly after attack animation starts
-            setTimeout(() => {
+            if (isCatchingUp) {
+              // Skip FX timers during catch-up and apply instant state changes for perfect sync
               if (this.currentMatchup) {
                 if (this.currentMatchup.pokemon1.name === entry.defender) {
                   this.currentMatchup.pokemon1.hp = entry.defenderHp;
@@ -421,22 +423,47 @@ export default {
                   this.currentMatchup.pokemon2.hp = entry.defenderHp;
                 }
               }
-            }, 300);
+            } else {
+              // Play normal visual FX
+              this.combatFX = { attacker: attackerSide, defender: defenderSide };
+              
+              setTimeout(() => {
+                this.combatFX = { attacker: null, defender: null };
+              }, 600);
+
+              setTimeout(() => {
+                if (this.currentMatchup) {
+                  if (this.currentMatchup.pokemon1.name === entry.defender) {
+                    this.currentMatchup.pokemon1.hp = entry.defenderHp;
+                  } else if (this.currentMatchup.pokemon2.name === entry.defender) {
+                    this.currentMatchup.pokemon2.hp = entry.defenderHp;
+                  }
+                }
+              }, 300);
+            }
           }
           
-          // Auto scroll log
+          // Auto scroll log (only for the last frame processed)
+          if (!isCatchingUp) {
+            this.$nextTick(() => {
+              if (this.$refs.logContainer) {
+                this.$refs.logContainer.scrollTop = this.$refs.logContainer.scrollHeight;
+              }
+            });
+          }
+        }
+        
+        if (lastI >= this.fullLog.length - 1) {
+          clearInterval(this.animationTimer);
+          this.battleFinished = true;
+          // Final scroll
           this.$nextTick(() => {
             if (this.$refs.logContainer) {
               this.$refs.logContainer.scrollTop = this.$refs.logContainer.scrollHeight;
             }
           });
-          
-          i++;
-        } else {
-          clearInterval(this.animationTimer);
-          this.battleFinished = true;
         }
-      }, 800); // 800ms between log entries
+      }, 100); // tick frequently but advance game-time based on actual wall-clock
     },
     resetBattle() {
       this.battleActive = false;
