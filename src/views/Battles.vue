@@ -216,8 +216,10 @@ export default {
       opponentTeams: [],
       loadingOpponentTeams: false,
       
+      setup: {
         opponentId: '',
-        myTeamId: '',
+        myTeamId: ''
+      },
 
       loadingBattle: false,
       battleActive: false,
@@ -262,7 +264,7 @@ export default {
     // Check if we came from friends page with an opponent pre-selected
     const opponentFromUrl = this.$route.query.opponent;
     if (opponentFromUrl) {
-      this.setup.opponentId = parseInt(opponentFromUrl);
+      this.setup.opponentId = String(opponentFromUrl);
     }
     
     window.addEventListener('battle-turn-result', this.handleTurnResult);
