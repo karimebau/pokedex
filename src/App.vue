@@ -29,7 +29,7 @@
         <div style="margin-bottom: 1rem;" v-if="myTeams.length > 0">
           <label class="form-label" style="font-size: 0.8rem;">Selecciona tu equipo:</label>
           <select v-model="selectedDefenseTeamId" class="form-select" style="padding: 0.3rem; font-size: 0.8rem; background: var(--bg-color);">
-            <option v-for="t in myTeams" :key="t.id" :value="t.id" :disabled="t.pokemon.length === 0">
+            <option v-for="t in myTeams" :key="t._id" :value="t._id" :disabled="t.pokemon.length === 0">
               {{ t.name }} ({{ t.pokemon.length }} PKMN)
             </option>
           </select>
@@ -203,7 +203,7 @@ export default {
         this.myTeams = res.data;
         const validTeams = this.myTeams.filter(t => t.pokemon.length > 0);
         if (validTeams.length > 0) {
-          this.selectedDefenseTeamId = validTeams[0].id;
+          this.selectedDefenseTeamId = validTeams[0]._id;
         } else {
           this.selectedDefenseTeamId = '';
         }
