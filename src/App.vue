@@ -23,11 +23,22 @@
     <transition name="toast">
       <div v-if="battleInvite" class="notification-toast" style="background-color: var(--card-bg); border-left: 4px solid var(--accent); padding: 1.5rem; bottom: 80px;">
         <div style="font-weight: 700; margin-bottom: 0.5rem;">⚔️ ¡Reto de Batalla!</div>
-        <p style="margin-bottom: 1rem; font-size: 0.9rem;">
-          <strong>{{ battleInvite.challengerName }}</strong> te ha desafiado usando uno de tus equipos. ¿Aceptas?
+        <p style="margin-bottom: 0.5rem; font-size: 0.9rem;">
+          <strong>{{ battleInvite.challengerName }}</strong> te ha desafiado a una batalla.
+        </p>
+        <div style="margin-bottom: 1rem;" v-if="myTeams.length > 0">
+          <label class="form-label" style="font-size: 0.8rem;">Selecciona tu equipo:</label>
+          <select v-model="selectedDefenseTeamId" class="form-select" style="padding: 0.3rem; font-size: 0.8rem; background: var(--bg-color);">
+            <option v-for="t in myTeams" :key="t.id" :value="t.id" :disabled="t.pokemon.length === 0">
+              {{ t.name }} ({{ t.pokemon.length }} PKMN)
+            </option>
+          </select>
+        </div>
+        <p v-else-if="loadingTeams === false" style="color: var(--error); font-size: 0.8rem; margin-bottom: 1rem;">
+          No tienes equipos con Pokémon para defenderte.
         </p>
         <div style="display: flex; gap: 0.5rem;">
-          <button class="btn btn-primary btn-sm" @click="acceptBattle">¡Aceptar!</button>
+          <button class="btn btn-primary btn-sm" @click="acceptBattle" :disabled="!selectedDefenseTeamId">¡Aceptar!</button>
           <button class="btn btn-secondary btn-sm" @click="declineBattle">Rechazar</button>
         </div>
       </div>
@@ -97,7 +108,10 @@ export default {
       pollInterval: null,
       isOffline: !navigator.onLine,
       showToast: false,
-      lastCheckCount: null
+      lastCheckCount: null,
+      myTeams: [],
+      selectedDefenseTeamId: '',
+      loadingTeams: false
     };
   },
   mounted() {
@@ -182,14 +196,32 @@ export default {
         console.error('Error fetching notifications', e);
       }
     },
+    async fetchMyTeams() {
+      this.loadingTeams = true;
+      try {
+        const res = await api.get('/teams');
+        this.myTeams = res.data;
+        const validTeams = this.myTeams.filter(t => t.pokemon.length > 0);
+        if (validTeams.length > 0) {
+          this.selectedDefenseTeamId = validTeams[0].id;
+        } else {
+          this.selectedDefenseTeamId = '';
+        }
+      } catch (e) {
+        console.error('Error fetching teams', e);
+      } finally {
+        this.loadingTeams = false;
+      }
+    },
     acceptBattle() {
       const socket = getSocket();
-      if (socket && this.battleInvite) {
+      if (socket && this.battleInvite && this.selectedDefenseTeamId) {
         socket.emit('battle_accept', {
           challengerId: this.battleInvite.challengerId,
-          defenderTeamId: this.battleInvite.challengerTeamMeta.opponentTeamId
+          defenderTeamId: this.selectedDefenseTeamId
         });
         socketState.inviteParams = null; // Esconder popup
+        this.selectedDefenseTeamId = '';
       }
     },
     declineBattle() {
@@ -229,6 +261,11 @@ export default {
     }
   },
   watch: {
+    battleInvite(newVal) {
+      if (newVal) {
+        this.fetchMyTeams();
+      }
+    },
     '$route.path'(newPath) {
       if (newPath === '/notifications') {
         this.unreadCount = 0;

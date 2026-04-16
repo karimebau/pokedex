@@ -75,6 +75,10 @@ export const connectSocket = () => {
     window.dispatchEvent(new CustomEvent('battle-start-event'));
   });
 
+  socket.on('battle_turn_result', (data) => {
+    window.dispatchEvent(new CustomEvent('battle-turn-result', { detail: data }));
+  });
+
   // Error de invitación (oponente offline)
   socket.on('battle_invite_error', (data) => {
     socketState.waitingForOpponent = false;

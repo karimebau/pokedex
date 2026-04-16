@@ -50,23 +50,7 @@
           </p>
         </div>
 
-        <div class="form-group" style="margin-top: 1.5rem;" v-if="setup.opponentId && !loadingOpponentTeams">
-          <label class="form-label">⚔️ Equipo del Oponente</label>
-          <select v-model="setup.opponentTeamId" class="form-select" required>
-            <option value="" disabled>Selecciona el equipo a enfrentar...</option>
-            <option v-for="t in opponentTeams" :key="t.id" :value="t.id">
-              {{ t.name }} ({{ t.pokemon_count }} Pokémon) {{ t.pokemon_count === 0 ? '⚠️' : '' }}
-            </option>
-          </select>
-          <p v-if="setup.opponentTeamId && opponentTeams.find(t => t.id === setup.opponentTeamId)?.pokemon_count === 0" style="color: var(--accent); font-size: 0.8rem; margin-top: 0.5rem; font-weight: 600;">
-            ⚠️ El equipo seleccionado del oponente no tiene Pokémon. Pídele que añada algunos!
-          </p>
-          <p v-if="opponentTeams.length === 0" style="color: var(--accent); font-size: 0.8rem; margin-top: 0.5rem;">
-            Tu amigo aún no ha creado ningún equipo.
-          </p>
-        </div>
-        
-        <div v-if="loadingOpponentTeams" class="spinner" style="margin: 1.5rem auto;"></div>
+
 
         <div style="margin-top: 2.5rem;">
           <button 
@@ -80,7 +64,7 @@
             <span v-else>¡INICIAR BATALLA! ⚔️</span>
           </button>
           
-          <p v-if="!isValidSetup && (setup.myTeamId || setup.opponentTeamId)" style="text-align: center; font-size: 0.85rem; color: var(--text-secondary); margin-top: 1rem;">
+          <p v-if="!isValidSetup && setup.myTeamId" style="text-align: center; font-size: 0.85rem; color: var(--text-secondary); margin-top: 1rem;">
             {{ getDisableReason }}
           </p>
         </div>
@@ -172,6 +156,29 @@
         </div>
       </div>
 
+      <!-- Attack Menu Component (Turn-based) -->
+      <div v-if="battleActive && !battleFinished" class="battle-menu card" style="margin-bottom: 2.5rem; padding: 1.5rem; border: 1px solid var(--glass-border); text-align: center; background: rgba(0,0,0,0.2);">
+        <h3 style="margin-bottom: 1rem; color: var(--primary);">¿Qué debería hacer <span style="text-transform: capitalize;">{{ myActivePokemon?.name || 'tu Pokémon' }}</span>?</h3>
+        
+        <div v-if="waitingForTurn" style="padding: 1rem;">
+          <div class="spinner" style="margin: 0 auto 1rem;"></div>
+          <p style="color: var(--text-secondary);">Esperando al oponente...</p>
+        </div>
+        
+        <div v-else class="moves-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; max-width: 600px; margin: 0 auto;">
+          <button 
+            v-for="(move, idx) in myActivePokemon?.moves || []" 
+            :key="idx"
+            class="btn btn-secondary"
+            @click="submitAttack(idx)"
+            style="padding: 1rem; text-transform: capitalize; border: 2px solid var(--glass-border); transition: all 0.2s;"
+          >
+            <strong style="font-size: 1.1rem; display: block; margin-bottom: 0.3rem;">{{ move.name.replace('-', ' ') }}</strong>
+            <span style="font-size: 0.85rem; opacity: 0.8; background: var(--card-bg); padding: 0.2rem 0.5rem; border-radius: 4px;">{{ move.type }} (Pwr: {{ move.power || '-' }})</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Log Display -->
       <div class="battle-log card" ref="logContainer" style="height: 250px; overflow-y: auto; padding: 1.5rem; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.2);">
         <div 
@@ -209,11 +216,8 @@ export default {
       opponentTeams: [],
       loadingOpponentTeams: false,
       
-      setup: {
         opponentId: '',
         myTeamId: '',
-        opponentTeamId: '',
-      },
 
       loadingBattle: false,
       battleActive: false,
@@ -222,6 +226,9 @@ export default {
       fullLog: [],
       visibleLog: [],
       currentMatchup: null,
+      myActivePokemon: null,
+      isChallenger: false,
+      waitingForTurn: false,
       
       pokemonSpriteMap: {},
       animationTimer: null,
@@ -232,24 +239,17 @@ export default {
   computed: {
     isValidSetup() {
       const myTeam = this.teams.find(t => t.id === this.setup.myTeamId);
-      const opponentTeam = this.opponentTeams.find(t => t.id === this.setup.opponentTeamId);
       
       return this.setup.opponentId && 
              this.setup.myTeamId && 
-             this.setup.opponentTeamId &&
-             myTeam?.pokemon?.length > 0 &&
-             opponentTeam?.pokemon_count > 0;
+             myTeam?.pokemon?.length > 0;
     },
     getDisableReason() {
       if (!this.setup.opponentId) return 'Selecciona un oponente';
       if (!this.setup.myTeamId) return 'Selecciona tu equipo';
-      if (!this.setup.opponentTeamId) return 'Selecciona el equipo del oponente';
       
       const myTeam = this.teams.find(t => t.id === this.setup.myTeamId);
       if (myTeam?.pokemon?.length === 0) return 'Tu equipo seleccionado no tiene Pokémon';
-      
-      const opponentTeam = this.opponentTeams.find(t => t.id === this.setup.opponentTeamId);
-      if (opponentTeam?.pokemon_count === 0) return 'El equipo del oponente no tiene Pokémon';
       
       return '';
     },
@@ -265,15 +265,14 @@ export default {
       this.setup.opponentId = parseInt(opponentFromUrl);
     }
     
+    window.addEventListener('battle-turn-result', this.handleTurnResult);
+
     await Promise.all([
       this.fetchFriends(),
       this.fetchMyTeams()
     ]);
     
-    if (this.setup.opponentId) {
-      await this.fetchOpponentTeams();
-    }
-    
+
     this.loading = false;
 
     // Check if there is an active battle right now when component mounts!
@@ -290,6 +289,7 @@ export default {
     }
   },
   beforeUnmount() {
+    window.removeEventListener('battle-turn-result', this.handleTurnResult);
     if (this.animationTimer) clearInterval(this.animationTimer);
     this.resetBattle();
   },
@@ -334,10 +334,8 @@ export default {
       this.socketState.pendingChallengerTeamId = this.setup.myTeamId;
       socket.emit('battle_invite', {
         opponentId: this.setup.opponentId,
-        teamId: this.setup.opponentTeamId, 
         teamMeta: {
-          challengerTeamId: this.setup.myTeamId,
-          opponentTeamId: this.setup.opponentTeamId // they will need to lock this when accepting
+          challengerTeamId: this.setup.myTeamId
         }
       });
       
@@ -370,15 +368,55 @@ export default {
     },
     loadSocketBattle(payload) {
       this.battleData = payload;
-      this.fullLog = payload.log;
+      this.fullLog = [];
 
       this.pokemonSpriteMap = {};
       this.battleData.challenger.team.forEach(p => { this.pokemonSpriteMap[p.id] = p.sprite; });
       this.battleData.opponent.team.forEach(p => { this.pokemonSpriteMap[p.id] = p.sprite; });
 
+      const localUser = JSON.parse(localStorage.getItem('user'));
+      this.isChallenger = (String(this.battleData.challenger.id) === String(localUser?.id || localUser?._id));
+      
+      this.myActivePokemon = this.isChallenger ? payload.initialState.p1Active : payload.initialState.p2Active;
+      this.currentMatchup = {
+        pokemon1: payload.initialState.p1Active,
+        pokemon2: payload.initialState.p2Active
+      };
+
       this.battleFinished = false;
       this.battleActive = true;
-      this.playAnimation();
+      this.waitingForTurn = false;
+      // We do not play animation immediately since turn 1 hasn't occurred yet, 
+      // but we wait for user to click a move.
+    },
+    submitAttack(idx) {
+      if (this.waitingForTurn) return;
+      this.waitingForTurn = true;
+      const socket = getSocket();
+      socket.emit('submit_action', {
+        battleId: this.battleData.id,
+        moveIndex: idx
+      });
+    },
+    handleTurnResult(event) {
+      const data = event.detail;
+      this.fullLog = data.log; // This round's log
+      this.playAnimation(() => {
+        // After animation completes
+        this.myActivePokemon = this.isChallenger ? data.p1Active : data.p2Active;
+        this.currentMatchup = {
+           pokemon1: data.p1Active,
+           pokemon2: data.p2Active
+        };
+        
+        if (data.winner) {
+          this.battleData.winner = data.winner;
+          this.battleData.winner_id = (data.winner === 1) ? this.battleData.challenger.id : (data.winner === 2) ? this.battleData.opponent.id : null;
+          this.battleFinished = true;
+        } else {
+          this.waitingForTurn = false;
+        }
+      });
     },
     getSpriteObj(id) {
       return this.pokemonSpriteMap[id] || '';
@@ -388,7 +426,7 @@ export default {
       if (ratio > 0.2) return 'hp-medium';
       return 'hp-low';
     },
-    playAnimation() {
+    playAnimation(onComplete) {
       this.visibleLog = [];
       const startTime = Date.now();
       const intervalMs = 800; // 800ms time step per discrete action
@@ -456,13 +494,12 @@ export default {
         
         if (lastI >= this.fullLog.length - 1) {
           clearInterval(this.animationTimer);
-          this.battleFinished = true;
-          // Final scroll
           this.$nextTick(() => {
             if (this.$refs.logContainer) {
               this.$refs.logContainer.scrollTop = this.$refs.logContainer.scrollHeight;
             }
           });
+          if (onComplete) onComplete();
         }
       }, 100); // tick frequently but advance game-time based on actual wall-clock
     },
